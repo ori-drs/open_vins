@@ -1,0 +1,16 @@
+%YAML:1.0
+
+imu0:
+  T_i_b:
+    - [1.0, 0.0, 0.0, 0.0]
+    - [0.0, 1.0, 0.0, 0.0]
+    - [0.0, 0.0, 1.0, 0.0]
+    - [0.0, 0.0, 0.0, 1.0]
+  accelerometer_noise_density: 0.0014929303436999736 # [ m / s^2 / sqrt(Hz) ]   ( accel "white noise" )
+  accelerometer_random_walk: 6.883010680707546e-05 # [ m / s^3 / sqrt(Hz) ].  ( accel bias diffusion )
+  gyroscope_noise_density: 0.00029824119649206544 # [ rad / s / sqrt(Hz) ]   ( gyro "white noise" )
+  gyroscope_random_walk: 1.2013119882828282e-06 # [ rad / s^2 / sqrt(Hz) ] ( gyro bias diffusion )
+  model: calibrated
+  rostopic: /alphasense_driver_ros/imu
+  time_offset: 0.0
+  update_rate: 200.0
