@@ -3,7 +3,7 @@
 ## DRS Fork of OpenVINS
 
 To build:
-<<<<<<< HEAD
+
 `catkin build ov_core ov_init ov_msckf ov_eval`
 
 To run:
@@ -12,12 +12,6 @@ In separate terminals run:
 `rosrun image_transport republish compressed in:=/alphasense_driver_ros/cam1/ raw out:=/camera/left/image_raw/`
 
 `rosrun image_transport republish compressed in:=/alphasense_driver_ros/cam0/ raw out:=/camera/right/image_raw/`
-=======
-
-`catkin build ov_msckf`
-
-To run:
->>>>>>> 6409bf72c5d58cd8c5cd60195468a8ae9b3e777c
 
 `roslaunch ov_msckf ros_halo_0623.launch`
 
