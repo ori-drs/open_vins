@@ -21,6 +21,12 @@ To visualize:
 
 `rviz -d launch/display.rviz`
 
+
+**To save trajectory in TUM format:**
+
+Pass `<param name="tum_format" type="bool" value="true" />` to `pose_to_file` node 
+
+
 ---
 
 [![ROS 1 Workflow](https://github.com/rpng/open_vins/actions/workflows/build_ros1.yml/badge.svg)](https://github.com/rpng/open_vins/actions/workflows/build_ros1.yml)
