@@ -99,7 +99,7 @@ protected:
    * @param mask0 mask which has what ROI we do not want features in
    * @param mask1 mask which has what ROI we do not want features in
    * @param cam_id_left first camera sensor id
-   * @param cam_id_right second camera sensor id
+   * @param cam_id_right second camera sensor id  
    * @param pts0 left vector of currently extracted keypoints
    * @param pts1 right vector of currently extracted keypoints
    * @param ids0 left vector of feature ids for each currently extracted keypoint
