@@ -95,7 +95,7 @@ private:
             result << val.substr(from, to - from) << escape_seq_ << val[to];
             from = to + 1;
         }
-        //result << val.substr(from) << '"';
+        result << val.substr(from); // << '"';
         return result.str();
     }
 };
