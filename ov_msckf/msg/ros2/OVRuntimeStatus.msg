@@ -14,3 +14,7 @@ geometry_msgs/Vector3 bias_g
 
 # Time offset base IMU to camera (t_imu = t_cam + t_off)
 float64 t_offset_imu_cam
+
+# Pointcloud for features (Eigen::Vector3d p_FinG; //=> position of feature F in the global frame G)
+sensor_msgs/PointCloud2 cloud_msckf_features
+sensor_msgs/PointCloud2 cloud_slam_features

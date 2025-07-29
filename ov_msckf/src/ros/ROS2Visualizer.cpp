@@ -30,7 +30,6 @@
 #include "utils/dataset_reader.h"
 #include "utils/print.h"
 #include "utils/sensor_data.h"
-// #include "ov_msckf/msg/o_vruntime_status.hpp"
 
 using namespace ov_core;
 using namespace ov_type;
@@ -704,6 +703,12 @@ void ROS2Visualizer::publish_features() {
     std::vector<Eigen::Vector3d> feats_slam = _app->get_features_SLAM();
     status_msg.num_msckf_features = feats_msckf.size();
     status_msg.num_slam_features = feats_slam.size();
+
+    // Get feature coordinates (global)
+    sensor_msgs::msg::PointCloud2 cloud_msckf = ROSVisualizerHelper::get_ros_pointcloud(_node, feats_msckf);
+    status_msg.cloud_msckf_features = cloud_msckf;
+    sensor_msgs::msg::PointCloud2 cloud_slam = ROSVisualizerHelper::get_ros_pointcloud(_node, feats_slam);
+    status_msg.cloud_slam_features = cloud_slam;
 
     // Publish runtime status
     pub_status->publish(status_msg);
