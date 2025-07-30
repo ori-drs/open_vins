@@ -375,7 +375,8 @@ void VioManager::retriangulate_active_tracks(const ov_core::CameraData &message)
     // Finally construct the uv and depth
     Eigen::Vector3d uvd;
     uvd << uv_dist, depth;
-    active_tracks_uvd.insert({feat.first, uvd});
+    //PRINT_INFO(REDPURPLE "%d %f \n"RESET, feat.first, depth);
+    active_tracks_uvd.insert({feat.first, uvd}); // Get uv coordinates and depth of active tracked feature projected onto current frame
   }
   retri_rT3 = boost::posix_time::microsec_clock::local_time();
 

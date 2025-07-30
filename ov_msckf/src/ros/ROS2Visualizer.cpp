@@ -30,6 +30,9 @@
 #include "utils/dataset_reader.h"
 #include "utils/print.h"
 #include "utils/sensor_data.h"
+#include "feat/Feature.h"
+#include <string>
+#include <Eigen/Eigen>
 
 using namespace ov_core;
 using namespace ov_type;
@@ -54,6 +57,8 @@ ROS2Visualizer::ROS2Visualizer(std::shared_ptr<rclcpp::Node> node, std::shared_p
 
   pub_status = node->create_publisher<ov_msckf::msg::OVRuntimeStatus>("runtime_status", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_status->get_topic_name());
+  pub_active_features = node->create_publisher<ov_msckf::msg::OVActiveFeatureArray>("active_features", 2);
+  PRINT_DEBUG("Publishing: %s\n", pub_active_features->get_topic_name());
 
   // 3D points publishing
   pub_points_msckf = node->create_publisher<sensor_msgs::msg::PointCloud2>("points_msckf", 2);
@@ -704,12 +709,24 @@ void ROS2Visualizer::publish_features() {
     status_msg.num_msckf_features = feats_msckf.size();
     status_msg.num_slam_features = feats_slam.size();
 
-    // Get feature coordinates (global)
+    // Get feature coordinates (global 3d coords)
     sensor_msgs::msg::PointCloud2 cloud_msckf = ROSVisualizerHelper::get_ros_pointcloud(_node, feats_msckf);
     status_msg.cloud_msckf_features = cloud_msckf;
     sensor_msgs::msg::PointCloud2 cloud_slam = ROSVisualizerHelper::get_ros_pointcloud(_node, feats_slam);
     status_msg.cloud_slam_features = cloud_slam;
 
+    // Get MSCKF feature UV
+    std::vector<std::shared_ptr<Feature>> good_features_MSCKF_full = _app->get_good_features_MSCKF_full();
+    
+    for (auto &feat : good_features_MSCKF_full) {
+      for (auto &pair : feat->uvs) {
+        PRINT_INFO(REDPURPLE "%d, %d" RESET, pair.first, pair.second.size());
+        for (auto &vec : pair.second) {
+          PRINT_INFO("\n %f, %f", vec[0], vec[1]);
+        }
+      }
+    }
+    
     // Publish runtime status
     pub_status->publish(status_msg);
     // PRINT_DEBUG("Published runtime status with %ld MSCKF features and %ld SLAM features\n", 
@@ -885,8 +902,8 @@ void ROS2Visualizer::publish_loopclosure_information() {
   // Get the current tracks in this frame
   double active_tracks_time1 = -1;
   double active_tracks_time2 = -1;
-  std::unordered_map<size_t, Eigen::Vector3d> active_tracks_posinG;
-  std::unordered_map<size_t, Eigen::Vector3d> active_tracks_uvd;
+  std::unordered_map<size_t, Eigen::Vector3d> active_tracks_posinG; // <feat_id, feature 3d position>
+  std::unordered_map<size_t, Eigen::Vector3d> active_tracks_uvd;    // <feat_id, uvd>
   cv::Mat active_cam0_image;
   _app->get_active_tracks(active_tracks_time1, active_tracks_posinG, active_tracks_uvd);
   _app->get_active_image(active_tracks_time2, active_cam0_image);
@@ -896,6 +913,27 @@ void ROS2Visualizer::publish_loopclosure_information() {
     return;
   if (active_tracks_time1 != active_tracks_time2)
     return;
+  
+  // Get active tracked features
+  ov_msckf::msg::OVActiveFeatureArray featArray_msg;  // Message for array of active features
+  featArray_msg.header.stamp = ROSVisualizerHelper::get_time_from_seconds(active_tracks_time1);   // Timestamp of image
+  featArray_msg.header.frame_id = "";
+  
+  // For every feature in current camera image
+  for (auto &pair : active_tracks_posinG) {
+    ov_msckf::msg::OVActiveFeature feat_msg;          // Message for single feature (featid, posinG, uvd)
+    Eigen::Vector3d uvd = active_tracks_uvd[pair.first]; 
+
+    // Store featid, posinG (posinglobal), uvd of feature
+    feat_msg.featid = pair.first;
+    feat_msg.posinglobal = geometry_msgs::build<geometry_msgs::msg::Vector3>().x(pair.second.x()).y(pair.second.y()).z(pair.second.z());
+    feat_msg.uvd = geometry_msgs::build<geometry_msgs::msg::Vector3>().x(uvd.x()).y(uvd.y()).z(uvd.z());    // Note uvd is given in frame of reference from cam0
+
+    // Push back feature msg into feature array msg
+    featArray_msg.data.push_back(feat_msg);         
+  }
+  // Publish active features
+  pub_active_features->publish(featArray_msg);
 
   // Default header
   std_msgs::msg::Header header;

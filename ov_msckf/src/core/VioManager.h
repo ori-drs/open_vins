@@ -231,7 +231,7 @@ protected:
 
   // Good features that where used in the last update (used in visualization)
   std::vector<Eigen::Vector3d> good_features_MSCKF;
-
+  
   // Re-triangulated features 3d positions seen from the current frame (used in visualization)
   // For each feature we have a linear system A * p_FinG = b we create and increment their costs
   double active_tracks_time = -1;

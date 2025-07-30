@@ -25,6 +25,8 @@ add_definitions(-DROS_AVAILABLE=2)
 # Add message files
 set(msg_files
         msg/ros2/OVRuntimeStatus.msg
+        msg/ros2/OVActiveFeature.msg
+        msg/ros2/OVActiveFeatureArray.msg
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
