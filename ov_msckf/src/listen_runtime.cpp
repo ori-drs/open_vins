@@ -218,6 +218,10 @@ class RuntimeSubscriber : public rclcpp::Node
       std::string frame_id = feat_msg->header.frame_id;
       *(this->feat_csv) << sec << nanosec << frame_id;
       
+      //std::string message = "Number of Data: "+std::to_string(feat_msg->data.size());
+      //RCLCPP_INFO(this->get_logger(), "%s", message.c_str());
+      //std::cout << "RECEIVED DATA: " << feat_msg->data.size() << std::endl; 
+      
       std::vector<ov_msckf::msg::OVActiveFeature> feat_arr = feat_msg->data;
       std::string feat_num = std::to_string(feat_arr.size());
       *(this->feat_csv) << feat_num;

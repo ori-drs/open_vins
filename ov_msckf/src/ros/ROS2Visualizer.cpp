@@ -714,18 +714,6 @@ void ROS2Visualizer::publish_features() {
     status_msg.cloud_msckf_features = cloud_msckf;
     sensor_msgs::msg::PointCloud2 cloud_slam = ROSVisualizerHelper::get_ros_pointcloud(_node, feats_slam);
     status_msg.cloud_slam_features = cloud_slam;
-
-    // Get MSCKF feature UV
-    std::vector<std::shared_ptr<Feature>> good_features_MSCKF_full = _app->get_good_features_MSCKF_full();
-    
-    for (auto &feat : good_features_MSCKF_full) {
-      for (auto &pair : feat->uvs) {
-        PRINT_INFO(REDPURPLE "%d, %d" RESET, pair.first, pair.second.size());
-        for (auto &vec : pair.second) {
-          PRINT_INFO("\n %f, %f", vec[0], vec[1]);
-        }
-      }
-    }
     
     // Publish runtime status
     pub_status->publish(status_msg);
@@ -907,6 +895,8 @@ void ROS2Visualizer::publish_loopclosure_information() {
   cv::Mat active_cam0_image;
   _app->get_active_tracks(active_tracks_time1, active_tracks_posinG, active_tracks_uvd);
   _app->get_active_image(active_tracks_time2, active_cam0_image);
+  //std::cout << "AFTER no of tracks: " << active_tracks_uvd.size() << std::endl;
+  //std::cout << "AFTER in posinG no of tracks: " << active_tracks_posinG.size() << std::endl;
   if (active_tracks_time1 == -1)
     return;
   if (_app->get_state()->_clones_IMU.find(active_tracks_time1) == _app->get_state()->_clones_IMU.end())
@@ -920,20 +910,21 @@ void ROS2Visualizer::publish_loopclosure_information() {
   featArray_msg.header.frame_id = "";
   
   // For every feature in current camera image
-  for (auto &pair : active_tracks_posinG) {
+  for (auto &pair : active_tracks_uvd) {
     ov_msckf::msg::OVActiveFeature feat_msg;          // Message for single feature (featid, posinG, uvd)
-    Eigen::Vector3d uvd = active_tracks_uvd[pair.first]; 
+    Eigen::Vector3d xyz = active_tracks_posinG[pair.first]; 
 
     // Store featid, posinG (posinglobal), uvd of feature
     feat_msg.featid = pair.first;
-    feat_msg.posinglobal = geometry_msgs::build<geometry_msgs::msg::Vector3>().x(pair.second.x()).y(pair.second.y()).z(pair.second.z());
-    feat_msg.uvd = geometry_msgs::build<geometry_msgs::msg::Vector3>().x(uvd.x()).y(uvd.y()).z(uvd.z());    // Note uvd is given in frame of reference from cam0
+    feat_msg.posinglobal = geometry_msgs::build<geometry_msgs::msg::Vector3>().x(xyz.x()).y(xyz.y()).z(xyz.z());
+    feat_msg.uvd = geometry_msgs::build<geometry_msgs::msg::Vector3>().x(pair.second.x()).y(pair.second.y()).z(pair.second.z());    // Note uvd is given in frame of reference from cam0
 
     // Push back feature msg into feature array msg
     featArray_msg.data.push_back(feat_msg);         
   }
   // Publish active features
   pub_active_features->publish(featArray_msg);
+  //std::cout << "AGAIN AFTER no of tracks: " << featArray_msg.data.size() << std::endl;
 
   // Default header
   std_msgs::msg::Header header;

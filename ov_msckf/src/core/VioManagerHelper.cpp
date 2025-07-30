@@ -361,8 +361,11 @@ void VioManager::retriangulate_active_tracks(const ov_core::CameraData &message)
 
     // Skip if not valid (i.e. negative depth, or outside of image)
     if (depth < 0.1) {
+      //PRINT_INFO(REDPURPLE "SKIPPED %f, %f, %f\n" RESET, uv_dist(0), uv_dist(1), depth);
       continue;
     }
+
+    //std::cout << uv_dist(0) << ", " << uv_dist(1) << ", " << depth << std::endl;
 
     // Skip if not valid (i.e. negative depth, or outside of image)
     int width = state->_cam_intrinsics_cameras.at(0)->w();
@@ -378,6 +381,7 @@ void VioManager::retriangulate_active_tracks(const ov_core::CameraData &message)
     //PRINT_INFO(REDPURPLE "%d %f \n"RESET, feat.first, depth);
     active_tracks_uvd.insert({feat.first, uvd}); // Get uv coordinates and depth of active tracked feature projected onto current frame
   }
+  //std::cout << "BEFORE No Feature: " << active_tracks_uvd.size() << std::endl;
   retri_rT3 = boost::posix_time::microsec_clock::local_time();
 
   // Timing information
