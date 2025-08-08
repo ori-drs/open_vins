@@ -59,6 +59,8 @@ ROS2Visualizer::ROS2Visualizer(std::shared_ptr<rclcpp::Node> node, std::shared_p
   PRINT_DEBUG("Publishing: %s\n", pub_status->get_topic_name());
   pub_active_features = node->create_publisher<ov_msckf::msg::OVActiveFeatureArray>("active_features", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_active_features->get_topic_name());
+  pub_slam_features = node->create_publisher<ov_msckf::msg::OVActiveFeatureArray>("slam_features", 2);
+  PRINT_DEBUG("Publishing: %s\n", pub_slam_features->get_topic_name());
 
   // 3D points publishing
   pub_points_msckf = node->create_publisher<sensor_msgs::msg::PointCloud2>("points_msckf", 2);
@@ -706,6 +708,8 @@ void ROS2Visualizer::publish_features() {
     // Get feature counts
     std::vector<Eigen::Vector3d> feats_msckf = _app->get_good_features_MSCKF();
     std::vector<Eigen::Vector3d> feats_slam = _app->get_features_SLAM();
+    std::vector<size_t> slam_feat_ids = _app->get_feature_ids_SLAM();
+
     status_msg.num_msckf_features = feats_msckf.size();
     status_msg.num_slam_features = feats_slam.size();
 
@@ -714,7 +718,13 @@ void ROS2Visualizer::publish_features() {
     status_msg.cloud_msckf_features = cloud_msckf;
     sensor_msgs::msg::PointCloud2 cloud_slam = ROSVisualizerHelper::get_ros_pointcloud(_node, feats_slam);
     status_msg.cloud_slam_features = cloud_slam;
-    
+
+    // Populate SLAM feature IDs (convert from size_t to uint32_t)
+    status_msg.slam_feat_ids.resize(slam_feat_ids.size());
+    for (size_t i = 0; i < slam_feat_ids.size(); i++) {
+        status_msg.slam_feat_ids[i] = static_cast<uint32_t>(slam_feat_ids[i]);
+    }
+
     // Publish runtime status
     pub_status->publish(status_msg);
     // PRINT_DEBUG("Published runtime status with %ld MSCKF features and %ld SLAM features\n", 
@@ -890,10 +900,13 @@ void ROS2Visualizer::publish_loopclosure_information() {
   // Get the current tracks in this frame
   double active_tracks_time1 = -1;
   double active_tracks_time2 = -1;
+  double active_tracks_time3 = -1;
   std::unordered_map<size_t, Eigen::Vector3d> active_tracks_posinG; // <feat_id, feature 3d position>
   std::unordered_map<size_t, Eigen::Vector3d> active_tracks_uvd;    // <feat_id, uvd>
+  std::unordered_map<size_t, Eigen::Vector3d> slam_tracks_uvd;    // <feat_id, uvd> of SLAM features not seen in cam0
   cv::Mat active_cam0_image;
   _app->get_active_tracks(active_tracks_time1, active_tracks_posinG, active_tracks_uvd);
+  _app->get_slam_tracks(active_tracks_time2, slam_tracks_uvd);
   _app->get_active_image(active_tracks_time2, active_cam0_image);
   //std::cout << "AFTER no of tracks: " << active_tracks_uvd.size() << std::endl;
   //std::cout << "AFTER in posinG no of tracks: " << active_tracks_posinG.size() << std::endl;
@@ -907,7 +920,7 @@ void ROS2Visualizer::publish_loopclosure_information() {
   // Get active tracked features
   ov_msckf::msg::OVActiveFeatureArray featArray_msg;  // Message for array of active features
   featArray_msg.header.stamp = ROSVisualizerHelper::get_time_from_seconds(active_tracks_time1);   // Timestamp of image
-  featArray_msg.header.frame_id = "";
+  featArray_msg.header.frame_id = "cam0";
   
   // For every feature in current camera image
   for (auto &pair : active_tracks_uvd) {
@@ -922,8 +935,32 @@ void ROS2Visualizer::publish_loopclosure_information() {
     // Push back feature msg into feature array msg
     featArray_msg.data.push_back(feat_msg);         
   }
+
+  // Get SLAM tracked features
+  ov_msckf::msg::OVActiveFeatureArray slamFeatArray_msg;  // Message for array of active features
+  slamFeatArray_msg.header.stamp = ROSVisualizerHelper::get_time_from_seconds(active_tracks_time1);   // Timestamp of image
+  slamFeatArray_msg.header.frame_id = "cam0";
+
+  // For every SLAM feature not in current camera image
+  for (auto &pair : slam_tracks_uvd) {
+    //PRINT_INFO(REDPURPLE"Added SLAM feature to message#n"RESET);
+    ov_msckf::msg::OVActiveFeature feat_msg;          // Message for single feature (featid, posinG, uvd)
+    Eigen::Vector3d xyz = active_tracks_posinG[pair.first];
+
+    // Store featid, posinG (posinglobal), uvd of feature
+    feat_msg.featid = pair.first;
+    feat_msg.posinglobal = geometry_msgs::build<geometry_msgs::msg::Vector3>().x(xyz.x()).y(xyz.y()).z(xyz.z());
+    feat_msg.uvd = geometry_msgs::build<geometry_msgs::msg::Vector3>().x(pair.second.x()).y(pair.second.y()).z(pair.second.z());    // Note uvd is given in frame of reference from cam0
+
+    // Push back feature msg into feature array msg
+    slamFeatArray_msg.data.push_back(feat_msg);         
+  }
+
   // Publish active features
   pub_active_features->publish(featArray_msg);
+
+  // Publish SLAM not in cam0 features
+  pub_slam_features->publish(slamFeatArray_msg);
   //std::cout << "AGAIN AFTER no of tracks: " << featArray_msg.data.size() << std::endl;
 
   // Default header

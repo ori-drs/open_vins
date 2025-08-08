@@ -159,6 +159,7 @@ protected:
   rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr pub_loop_intrinsics;
   rclcpp::Publisher<ov_msckf::msg::OVRuntimeStatus>::SharedPtr pub_status;
   rclcpp::Publisher<ov_msckf::msg::OVActiveFeatureArray>::SharedPtr pub_active_features;
+  rclcpp::Publisher<ov_msckf::msg::OVActiveFeatureArray>::SharedPtr pub_slam_features;
   std::shared_ptr<tf2_ros::TransformBroadcaster> mTfBr;
 
   // Our subscribers and camera synchronizers

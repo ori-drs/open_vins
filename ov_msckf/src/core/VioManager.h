@@ -116,6 +116,9 @@ public:
   /// Returns 3d SLAM features in the global frame
   std::vector<Eigen::Vector3d> get_features_SLAM();
 
+  /// CUSTOM: Returns 3d SLAM feature ids
+  std::vector<size_t> get_feature_ids_SLAM();
+
   /// Returns 3d ARUCO features in the global frame
   std::vector<Eigen::Vector3d> get_features_ARUCO();
 
@@ -134,6 +137,11 @@ public:
     timestamp = active_tracks_time;
     feat_posinG = active_tracks_posinG;
     feat_tracks_uvd = active_tracks_uvd;
+  }
+
+  void get_slam_tracks(double &timestamp, std::unordered_map<size_t, Eigen::Vector3d> &feat_slam_tracks_uvd) {
+    timestamp = active_tracks_time;
+    feat_slam_tracks_uvd = slam_tracks_uvd;
   }
 
 protected:
@@ -237,6 +245,8 @@ protected:
   double active_tracks_time = -1;
   std::unordered_map<size_t, Eigen::Vector3d> active_tracks_posinG;
   std::unordered_map<size_t, Eigen::Vector3d> active_tracks_uvd;
+  std::unordered_map<size_t, Eigen::Vector3d> slam_tracks_uvd;
+
   cv::Mat active_image;
   std::map<size_t, Eigen::Matrix3d> active_feat_linsys_A;
   std::map<size_t, Eigen::Vector3d> active_feat_linsys_b;

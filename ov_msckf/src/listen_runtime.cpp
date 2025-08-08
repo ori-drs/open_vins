@@ -54,6 +54,11 @@ class RuntimeSubscriber : public rclcpp::Node
         "/ov_msckf/active_features", 10, std::bind(&RuntimeSubscriber::topic2_callback, this, std::placeholders::_1)
       );
       
+      // Subscribe to SLAM features
+      this->subOVSlamFeatureArray_ = this->create_subscription<ov_msckf::msg::OVActiveFeatureArray>(
+        "/ov_msckf/slam_features", 10, std::bind(&RuntimeSubscriber::topic3_callback, this, std::placeholders::_1)
+      );
+
       // Get save file path, create if it doesn't exist
       this->declare_parameter<std::string>("save_path", "unset_save_path");
       this->get_parameter<std::string>("save_path", this->save_path);
@@ -63,12 +68,14 @@ class RuntimeSubscriber : public rclcpp::Node
       std::string msckf_path = this->save_path + "_msckf.csv"; 
       std::string slam_path = this->save_path + "_slam.csv";
       std::string feat_path = this->save_path + "_feat.csv";
+      std::string feat_SLAM_path = this->save_path + "_feat_SLAM.csv";
 
       // Open csv files at save_path
       this->bias_csv = std::make_unique<csvfile>(bias_path);
       this->msckf_csv = std::make_unique<csvfile>(msckf_path);
       this->slam_csv = std::make_unique<csvfile>(slam_path);
       this->feat_csv = std::make_unique<csvfile>(feat_path);
+      this->feat_SLAM_csv = std::make_unique<csvfile>(feat_SLAM_path);
       RCLCPP_INFO(this->get_logger(), "Created .csv files");
 
       // Populate first lines
@@ -80,10 +87,17 @@ class RuntimeSubscriber : public rclcpp::Node
       *(this->msckf_csv) << "sec" << "nanosec" << "frame_id"
                          << "msckf_num_points" << "x" << "y" << "z" << endrow;
 
-      *(this->slam_csv) << "sec" << "nanosec" << "frame_id"
-                        << "slam_num_points" << "x" << "y" << "z" << endrow;
+      *(this->slam_csv) << "sec" << "nanosec" << "frame_id" << "slam_num_points"
+                        << "featid" << "x" << "y" << "z" 
+                        << "..." << endrow;
       
       *(this->feat_csv) << "sec" << "nanosec" << "frame_id" << "feat_num"
+                        << "featid"
+                        << "posx" << "posy" << "posz" 
+                        << "u"    << "v"    << "d"
+                        << "..." << endrow;
+
+      *(this->feat_SLAM_csv) << "sec" << "nanosec" << "frame_id" << "feat_num"
                         << "featid"
                         << "posx" << "posy" << "posz" 
                         << "u"    << "v"    << "d"
@@ -163,6 +177,7 @@ class RuntimeSubscriber : public rclcpp::Node
       
       // SLAM CSV
       sensor_msgs::msg::PointCloud2 cloud_slam = status_msg->cloud_slam_features;
+      std::vector<uint32_t> slam_feat_ids = status_msg->slam_feat_ids;
 
       // Extract XYZ coordinates from cloud_slam
       if (cloud_slam.width * cloud_slam.height == 0) {
@@ -186,11 +201,13 @@ class RuntimeSubscriber : public rclcpp::Node
           size_t num_points = cloud_slam.width * cloud_slam.height;
           
           *(this->slam_csv) << num_points;
+          std::string feat_id_str;
           std::string x_str;
           std::string y_str;
           std::string z_str;
 
           for (size_t i = 0; i < num_points; ++i) {
+            feat_id_str = std::to_string(slam_feat_ids[i]);
             const uint8_t* ptr = &cloud_slam.data[i * point_step];
             float x = *reinterpret_cast<const float*>(ptr + offset_x);
             float y = *reinterpret_cast<const float*>(ptr + offset_y);
@@ -201,7 +218,7 @@ class RuntimeSubscriber : public rclcpp::Node
             z_str = std::to_string(z);
             
             // Save xyz to csv
-            *(this->slam_csv) << x_str << y_str << z_str;
+            *(this->slam_csv) << feat_id_str << x_str << y_str << z_str;
             //RCLCPP_INFO(this->get_logger(), "Point %zu: x=%f, y=%f, z=%f", i, x, y, z);
           }
           *(this->slam_csv) << endrow;
@@ -209,6 +226,7 @@ class RuntimeSubscriber : public rclcpp::Node
       }
     }
 
+    // For all features in cam0
     void topic2_callback(const ov_msckf::msg::OVActiveFeatureArray::SharedPtr feat_msg) {
       
       RCLCPP_INFO(this->get_logger(), "Received message on topic2");
@@ -245,15 +263,56 @@ class RuntimeSubscriber : public rclcpp::Node
       }
       *(this->feat_csv) << endrow;
     }
+
+
+    // For SLAM features (can include those outside of cam0, should change source code to toggle: Search for TOGGLE in VioManagerHelper.cpp)
+    void topic3_callback(const ov_msckf::msg::OVActiveFeatureArray::SharedPtr feat_msg) {
+      
+      RCLCPP_INFO(this->get_logger(), "Received message on topic3");
+
+      std::string sec = std::to_string(feat_msg->header.stamp.sec);
+      std::string nanosec = std::to_string(feat_msg->header.stamp.nanosec);
+      std::string frame_id = feat_msg->header.frame_id;
+      *(this->feat_SLAM_csv) << sec << nanosec << frame_id;
+      
+      //std::string message = "Number of Data: "+std::to_string(feat_msg->data.size());
+      //RCLCPP_INFO(this->get_logger(), "%s", message.c_str());
+      //std::cout << "RECEIVED DATA: " << feat_msg->data.size() << std::endl; 
+      
+      std::vector<ov_msckf::msg::OVActiveFeature> feat_arr = feat_msg->data;
+      std::string feat_num = std::to_string(feat_arr.size());
+      *(this->feat_SLAM_csv) << feat_num;
+
+      for (auto &feat : feat_arr) {
+        std::string tempStr;
+        tempStr = std::to_string(feat.featid);
+        *(this->feat_SLAM_csv) << tempStr;
+        tempStr = std::to_string(feat.posinglobal.x);
+        *(this->feat_SLAM_csv) << tempStr;
+        tempStr = std::to_string(feat.posinglobal.y);
+        *(this->feat_SLAM_csv) << tempStr;
+        tempStr = std::to_string(feat.posinglobal.z);
+        *(this->feat_SLAM_csv) << tempStr;
+        tempStr = std::to_string(feat.uvd.x);
+        *(this->feat_SLAM_csv) << tempStr;
+        tempStr = std::to_string(feat.uvd.y);
+        *(this->feat_SLAM_csv) << tempStr;
+        tempStr = std::to_string(feat.uvd.z);
+        *(this->feat_SLAM_csv) << tempStr;
+      }
+      *(this->feat_SLAM_csv) << endrow;
+    }
     
     rclcpp::Subscription<ov_msckf::msg::OVRuntimeStatus>::SharedPtr subOVRuntimeStatus_;
     rclcpp::Subscription<ov_msckf::msg::OVActiveFeatureArray>::SharedPtr subOVActiveFeatureArray_;
+    rclcpp::Subscription<ov_msckf::msg::OVActiveFeatureArray>::SharedPtr subOVSlamFeatureArray_;
 
     std::string save_path;
     std::unique_ptr<csvfile> bias_csv;
     std::unique_ptr<csvfile> msckf_csv;
     std::unique_ptr<csvfile> slam_csv;
     std::unique_ptr<csvfile> feat_csv;
+    std::unique_ptr<csvfile> feat_SLAM_csv;
 };
 
 int main(int argc, char **argv) {

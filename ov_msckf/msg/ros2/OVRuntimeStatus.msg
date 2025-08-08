@@ -18,3 +18,6 @@ float64 t_offset_imu_cam
 # Pointcloud for features (Eigen::Vector3d p_FinG; //=> position of feature F in the global frame G)
 sensor_msgs/PointCloud2 cloud_msckf_features
 sensor_msgs/PointCloud2 cloud_slam_features
+
+# Feature IDs for SLAM cloud
+uint32[] slam_feat_ids

@@ -203,6 +203,7 @@ void VioManager::retriangulate_active_tracks(const ov_core::CameraData &message)
   }
   active_tracks_posinG.clear();
   active_tracks_uvd.clear();
+  slam_tracks_uvd.clear();
 
   // Current active tracks in our frontend
   // TODO: should probably assert here that these are at the message time...
@@ -342,7 +343,12 @@ void VioManager::retriangulate_active_tracks(const ov_core::CameraData &message)
 
     // For now skip features not seen from current frame
     // TODO: should we publish other features not tracked in cam0??
-    if (feat_uvs_in_cam0.find(feat.first) == feat_uvs_in_cam0.end())
+    // if (feat_uvs_in_cam0.find(feat.first) == feat_uvs_in_cam0.end())
+    //   continue;
+
+    // If neither a SLAM feature or in cam0 current frame, skip
+    bool is_slam_feature = (state->_features_SLAM.find(feat.first) != state->_features_SLAM.end());
+    if (!is_slam_feature && feat_uvs_in_cam0.find(feat.first) == feat_uvs_in_cam0.end()) 
       continue;
 
     // Calculate the depth of the feature in the current frame
@@ -351,9 +357,11 @@ void VioManager::retriangulate_active_tracks(const ov_core::CameraData &message)
     Eigen::Vector3d p_FinCi = R_ItoC * p_FinIi + p_IinC;
     double depth = p_FinCi(2);
     Eigen::Vector2d uv_dist;
+    // If feature is in cam0 (should include SLAM features)
     if (feat_uvs_in_cam0.find(feat.first) != feat_uvs_in_cam0.end()) {
       uv_dist << (double)feat_uvs_in_cam0.at(feat.first).x, (double)feat_uvs_in_cam0.at(feat.first).y;
     } else {
+      // Then this feature must be a SLAM feature that isn't in cam0
       Eigen::Vector2d uv_norm;
       uv_norm << p_FinCi(0) / depth, p_FinCi(1) / depth;
       uv_dist = state->_cam_intrinsics_cameras.at(0)->distort_d(uv_norm);
@@ -380,6 +388,12 @@ void VioManager::retriangulate_active_tracks(const ov_core::CameraData &message)
     uvd << uv_dist, depth;
     //PRINT_INFO(REDPURPLE "%d %f \n"RESET, feat.first, depth);
     active_tracks_uvd.insert({feat.first, uvd}); // Get uv coordinates and depth of active tracked feature projected onto current frame
+
+    // If feature is SLAM feature and is in cam0's view
+    if (is_slam_feature && feat_uvs_in_cam0.find(feat.first) == feat_uvs_in_cam0.end()) {
+      PRINT_DEBUG(REDPURPLE "INSERTED SLAM FEATURE\n" RESET);
+      slam_tracks_uvd.insert({feat.first, uvd});
+    }
   }
   //std::cout << "BEFORE No Feature: " << active_tracks_uvd.size() << std::endl;
   retri_rT3 = boost::posix_time::microsec_clock::local_time();
@@ -440,6 +454,30 @@ std::vector<Eigen::Vector3d> VioManager::get_features_SLAM() {
     }
   }
   return slam_feats;
+}
+
+// CUSTOM: clone of get_features_SLAM() returns feat id of slam landmark
+std::vector<size_t> VioManager::get_feature_ids_SLAM() {
+  std::vector<size_t> slam_feats_id;
+  for (auto &f : state->_features_SLAM) {
+    if ((int)f.first <= 4 * state->_options.max_aruco_features)
+      continue;
+    if (ov_type::LandmarkRepresentation::is_relative_representation(f.second->_feat_representation)) {
+      // Assert that we have an anchor pose for this feature
+      assert(f.second->_anchor_cam_id != -1);
+      // // Get calibration for our anchor camera
+      // Eigen::Matrix<double, 3, 3> R_ItoC = state->_calib_IMUtoCAM.at(f.second->_anchor_cam_id)->Rot();
+      // Eigen::Matrix<double, 3, 1> p_IinC = state->_calib_IMUtoCAM.at(f.second->_anchor_cam_id)->pos();
+      // // Anchor pose orientation and position
+      // Eigen::Matrix<double, 3, 3> R_GtoI = state->_clones_IMU.at(f.second->_anchor_clone_timestamp)->Rot();
+      // Eigen::Matrix<double, 3, 1> p_IinG = state->_clones_IMU.at(f.second->_anchor_clone_timestamp)->pos();
+      // Feature in the global frame
+      slam_feats_id.push_back(f.first);
+    } else {
+      slam_feats_id.push_back(f.first);
+    }
+  }
+  return slam_feats_id;
 }
 
 std::vector<Eigen::Vector3d> VioManager::get_features_ARUCO() {
