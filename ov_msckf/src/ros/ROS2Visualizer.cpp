@@ -135,8 +135,14 @@ ROS2Visualizer::ROS2Visualizer(std::shared_ptr<rclcpp::Node> node, std::shared_p
       boost::filesystem::remove(filepath_std);
 
     // Create folder path to this location if not exists
-    boost::filesystem::create_directories(boost::filesystem::path(filepath_est.c_str()).parent_path());
-    boost::filesystem::create_directories(boost::filesystem::path(filepath_std.c_str()).parent_path());
+    auto parent_path_est = boost::filesystem::path(filepath_est.c_str()).parent_path();
+    if (!parent_path_est.empty()) {
+      boost::filesystem::create_directories(parent_path_est);
+    }
+    auto parent_path_std = boost::filesystem::path(filepath_std.c_str()).parent_path();
+    if (!parent_path_std.empty()) {
+      boost::filesystem::create_directories(parent_path_std);
+    }
 
     // Open the files
     of_state_est.open(filepath_est.c_str());
@@ -150,7 +156,10 @@ ROS2Visualizer::ROS2Visualizer(std::shared_ptr<rclcpp::Node> node, std::shared_p
     if (_sim != nullptr) {
       if (boost::filesystem::exists(filepath_gt))
         boost::filesystem::remove(filepath_gt);
-      boost::filesystem::create_directories(boost::filesystem::path(filepath_gt.c_str()).parent_path());
+      auto parent_path_gt = boost::filesystem::path(filepath_gt.c_str()).parent_path();
+      if (!parent_path_gt.empty()) {
+        boost::filesystem::create_directories(parent_path_gt);
+      }
       of_state_gt.open(filepath_gt.c_str());
       of_state_gt << "# timestamp(s) q p v bg ba cam_imu_dt num_cam cam0_k cam0_d cam0_rot cam0_trans ... imu_model dw da tg wtoI atoI etc"
                   << std::endl;
@@ -921,7 +930,7 @@ void ROS2Visualizer::publish_loopclosure_information() {
   ov_msckf::msg::OVActiveFeatureArray featArray_msg;  // Message for array of active features
   featArray_msg.header.stamp = ROSVisualizerHelper::get_time_from_seconds(active_tracks_time1);   // Timestamp of image
   featArray_msg.header.frame_id = "cam0";
-  
+
   // For every feature in current camera image
   for (auto &pair : active_tracks_uvd) {
     ov_msckf::msg::OVActiveFeature feat_msg;          // Message for single feature (featid, posinG, uvd)
@@ -935,6 +944,9 @@ void ROS2Visualizer::publish_loopclosure_information() {
     // Push back feature msg into feature array msg
     featArray_msg.data.push_back(feat_msg);         
   }
+
+  // Get cam-imu time offset
+  featArray_msg.t_offset_imu_cam = _app->get_state()->_calib_dt_CAMtoIMU->value()(0);
 
   // Get SLAM tracked features
   ov_msckf::msg::OVActiveFeatureArray slamFeatArray_msg;  // Message for array of active features
@@ -955,6 +967,9 @@ void ROS2Visualizer::publish_loopclosure_information() {
     // Push back feature msg into feature array msg
     slamFeatArray_msg.data.push_back(feat_msg);         
   }
+
+  // Get cam-imu time offset
+  slamFeatArray_msg.t_offset_imu_cam = _app->get_state()->_calib_dt_CAMtoIMU->value()(0);
 
   // Publish active features
   pub_active_features->publish(featArray_msg);

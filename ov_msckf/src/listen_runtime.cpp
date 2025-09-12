@@ -91,13 +91,13 @@ class RuntimeSubscriber : public rclcpp::Node
                         << "featid" << "x" << "y" << "z" 
                         << "..." << endrow;
       
-      *(this->feat_csv) << "sec" << "nanosec" << "frame_id" << "feat_num"
+      *(this->feat_csv) << "sec" << "nanosec" << "frame_id" << "feat_num" << "t_offset_imu_cam"
                         << "featid"
                         << "posx" << "posy" << "posz" 
                         << "u"    << "v"    << "d"
                         << "..." << endrow;
 
-      *(this->feat_SLAM_csv) << "sec" << "nanosec" << "frame_id" << "feat_num"
+      *(this->feat_SLAM_csv) << "sec" << "nanosec" << "frame_id" << "feat_num" << "t_offset_imu_cam"
                         << "featid"
                         << "posx" << "posy" << "posz" 
                         << "u"    << "v"    << "d"
@@ -243,6 +243,8 @@ class RuntimeSubscriber : public rclcpp::Node
       std::vector<ov_msckf::msg::OVActiveFeature> feat_arr = feat_msg->data;
       std::string feat_num = std::to_string(feat_arr.size());
       *(this->feat_csv) << feat_num;
+      std::string t_offset_imu_cam = std::to_string(feat_msg->t_offset_imu_cam);
+      *(this->feat_csv) << t_offset_imu_cam;
 
       for (auto &feat : feat_arr) {
         std::string tempStr;
@@ -282,6 +284,8 @@ class RuntimeSubscriber : public rclcpp::Node
       std::vector<ov_msckf::msg::OVActiveFeature> feat_arr = feat_msg->data;
       std::string feat_num = std::to_string(feat_arr.size());
       *(this->feat_SLAM_csv) << feat_num;
+      std::string t_offset_imu_cam = std::to_string(feat_msg->t_offset_imu_cam);
+      *(this->feat_SLAM_csv) << t_offset_imu_cam;
 
       for (auto &feat : feat_arr) {
         std::string tempStr;
