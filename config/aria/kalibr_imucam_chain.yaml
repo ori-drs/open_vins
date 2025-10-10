@@ -1,4 +1,7 @@
 %YAML:1.0
+# cam0: camera_slam_left
+# cam1: camera_slam_right
+# cam2: camera_rgb
 
 cam0:
   T_cam_imu:
@@ -28,3 +31,17 @@ cam1:
   resolution: [640, 480]
   rostopic: /camera_slam_right/image
   timeshift_cam_imu: 0.004075260451014888
+cam2:
+  T_cam_imu:
+  - [-0.1061564415671857, 0.7958374298669715, -0.5961321960241086, 0.1258230800185664]
+  - [0.9936801665484081, 0.06291350562179068, -0.09296030022921153, 0.005361067249285295]
+  - [-0.03647652014818453, -0.6022330745094548, -0.7974865437389955, -0.016394991903615534]
+  - [0.0, 0.0, 0.0, 1.0]
+  cam_overlaps: []
+  camera_model: pinhole
+  distortion_coeffs: [0.205362163753855, 0.8177824523079911, -1.4284013566280807, 1.07228296107305]
+  distortion_model: equidistant
+  intrinsics: [609.2948192551593, 608.364081254451, 703.7315385970343, 702.9153221781557]
+  resolution: [1408, 1408]
+  rostopic: /camera_rgb_righted/image
+  timeshift_cam_imu: 0.006857702469605033
