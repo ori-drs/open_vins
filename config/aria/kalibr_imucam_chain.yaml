@@ -1,7 +1,9 @@
 %YAML:1.0
 # cam0: camera_slam_left
 # cam1: camera_slam_right
-# cam2: camera_rgb
+# cam2: camera_rgb  # This topic should really be called /camera_rgb_righted/image, as the image
+                    # information (and the extrinsics here) are for images that have been righted
+                    # (i.e. rotated by 90 degrees from the Aria glass' raw image)
 
 cam0:
   T_cam_imu:
@@ -43,5 +45,5 @@ cam2:
   distortion_model: equidistant
   intrinsics: [609.2948192551593, 608.364081254451, 703.7315385970343, 702.9153221781557]
   resolution: [1408, 1408]
-  rostopic: /camera_rgb_righted/image
+  rostopic: /camera_rgb/image
   timeshift_cam_imu: 0.006857702469605033
