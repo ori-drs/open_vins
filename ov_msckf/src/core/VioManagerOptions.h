@@ -237,18 +237,31 @@ struct VioManagerOptions {
           parser->parse_external("relative_config_imucam", "cam" + std::to_string(i), "timeshift_cam_imu", calib_camimu_dt, false);
         }
 
+        // Camera model
+        std::string cam_model = "pinhole";
+        parser->parse_external("relative_config_imucam", "cam" + std::to_string(i), "camera_model", cam_model);
+
         // Distortion model
         std::string dist_model = "radtan";
         parser->parse_external("relative_config_imucam", "cam" + std::to_string(i), "distortion_model", dist_model);
-
-        // Distortion parameters
-        std::vector<double> cam_calib1 = {1, 1, 0, 0};
-        std::vector<double> cam_calib2 = {0, 0, 0, 0};
-        parser->parse_external("relative_config_imucam", "cam" + std::to_string(i), "intrinsics", cam_calib1);
-        parser->parse_external("relative_config_imucam", "cam" + std::to_string(i), "distortion_coeffs", cam_calib2);
+        
         Eigen::VectorXd cam_calib = Eigen::VectorXd::Zero(8);
-        cam_calib << cam_calib1.at(0), cam_calib1.at(1), cam_calib1.at(2), cam_calib1.at(3), cam_calib2.at(0), cam_calib2.at(1),
-            cam_calib2.at(2), cam_calib2.at(3);
+        if (cam_model == "ds") {
+          // Kalibr order: xi, alpha, fx, fy, cx, cy
+          std::vector<double> cam_calib_kalibr = {0, 0, 1, 1, 0, 0};
+          parser->parse_external("relative_config_imucam", "cam" + std::to_string(i), "intrinsics", cam_calib_kalibr);
+          // Reorder to: fx, fy, cx, cy, xi, alpha, 0, 0
+          cam_calib << cam_calib_kalibr.at(2), cam_calib_kalibr.at(3), cam_calib_kalibr.at(4), cam_calib_kalibr.at(5),
+                       cam_calib_kalibr.at(0), cam_calib_kalibr.at(1), 0.0, 0.0;
+        } else {
+          // Distortion parameters
+          std::vector<double> cam_calib1 = {1, 1, 0, 0};
+          std::vector<double> cam_calib2 = {0, 0, 0, 0};
+          parser->parse_external("relative_config_imucam", "cam" + std::to_string(i), "intrinsics", cam_calib1);
+          parser->parse_external("relative_config_imucam", "cam" + std::to_string(i), "distortion_coeffs", cam_calib2);
+          cam_calib << cam_calib1.at(0), cam_calib1.at(1), cam_calib1.at(2), cam_calib1.at(3), cam_calib2.at(0), cam_calib2.at(1),
+              cam_calib2.at(2), cam_calib2.at(3);
+        }
         cam_calib(0) /= (downsample_cameras) ? 2.0 : 1.0;
         cam_calib(1) /= (downsample_cameras) ? 2.0 : 1.0;
         cam_calib(2) /= (downsample_cameras) ? 2.0 : 1.0;

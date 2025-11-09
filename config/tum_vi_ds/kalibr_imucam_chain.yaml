@@ -8,9 +8,9 @@ cam0:
     - [0.0, 0.0, 0.0, 1.0]
   cam_overlaps: [1]
   camera_model: ds
-  distortion_coeffs: [-0.17870582934985477, 0.5922052787641052, 0.0, 0.0] # This is a hack: xi, alpha
+  distortion_coeffs: []
   distortion_model: none
-  intrinsics: [157.1129521029741, 157.0715992893004, 254.99599999994643, 256.9683004965207]
+  intrinsics: [-0.17870582934985477, 0.5922052787641052, 157.1129521029741, 157.0715992893004, 254.99599999994643, 256.9683004965207]
   resolution: [512, 512]
   rostopic: /cam0/image_raw
   timeshift_cam_imu: 0.00012490093663153096
@@ -29,9 +29,9 @@ cam1:
     - [0.0, 0.0, 0.0, 1.0]
   cam_overlaps: [0]
   camera_model: ds
-  distortion_coeffs: [-0.17421230434118695, 0.592647522128994, 0.0, 0.0]
+  distortion_coeffs: []
   distortion_model: none
-  intrinsics: [157.4231685045675, 157.37695679481126, 252.61793781471945, 255.06762992733914]
+  intrinsics: [-0.17421230434118695, 0.592647522128994, 157.4231685045675, 157.37695679481126, 252.61793781471945, 255.06762992733914]
   resolution: [512, 512]
   rostopic: /cam1/image_raw
   timeshift_cam_imu: 0.00012272984173326314
