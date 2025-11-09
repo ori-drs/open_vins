@@ -31,6 +31,7 @@
 
 #include "cam/CamEqui.h"
 #include "cam/CamRadtan.h"
+#include "cam/CamDS.h"
 #include "utils/quat_ops.h"
 
 namespace ov_init {
@@ -50,6 +51,9 @@ public:
   // If distortion model is fisheye or radtan
   bool is_fisheye = false;
 
+  // If camera model is double sphere
+  bool is_double_sphere = false;
+
   // If value of 1 then this residual adds to the problem, otherwise if zero it is "gated"
   double gate = 1.0;
 
@@ -59,7 +63,7 @@ public:
    * @param pix_sigma_ Raw pixel measurement uncertainty (typically 1)
    * @param is_fisheye_ If this raw pixel camera uses fisheye distortion
    */
-  Factor_ImageReprojCalib(const Eigen::Vector2d &uv_meas_, double pix_sigma_, bool is_fisheye_);
+  Factor_ImageReprojCalib(const Eigen::Vector2d &uv_meas_, double pix_sigma_, bool is_fisheye_, bool is_double_sphere_);
 
   virtual ~Factor_ImageReprojCalib() {}
 

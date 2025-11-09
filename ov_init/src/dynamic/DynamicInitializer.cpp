@@ -844,6 +844,7 @@ bool DynamicInitializer::initialize(double &timestamp, Eigen::MatrixXd &covarian
       size_t feat_id = feat.first;
       size_t cam_id = camtime.first;
       bool is_fisheye = (std::dynamic_pointer_cast<ov_core::CamEqui>(params.camera_intrinsics.at(cam_id)) != nullptr);
+      bool is_double_sphere = (std::dynamic_pointer_cast<ov_core::CamDS>(params.camera_intrinsics.at(cam_id)) != nullptr);
 
       // Loop through each observation
       for (size_t i = 0; i < camtime.second.size(); i++) {
@@ -876,7 +877,7 @@ bool DynamicInitializer::initialize(double &timestamp, Eigen::MatrixXd &covarian
         factor_params.push_back(ceres_vars_calib_cam2imu_ori.at(map_calib_cam2imu.at(cam_id)));
         factor_params.push_back(ceres_vars_calib_cam2imu_pos.at(map_calib_cam2imu.at(cam_id)));
         factor_params.push_back(ceres_vars_calib_cam_intrinsics.at(map_calib_cam.at(cam_id)));
-        auto *factor_pinhole = new Factor_ImageReprojCalib(uv_raw, params.sigma_pix, is_fisheye);
+        auto *factor_pinhole = new Factor_ImageReprojCalib(uv_raw, params.sigma_pix, is_fisheye, is_double_sphere);
         // ceres::LossFunction *loss_function = nullptr;
         ceres::LossFunction *loss_function = new ceres::CauchyLoss(1.0);
         problem.AddResidualBlock(factor_pinhole, loss_function, factor_params);

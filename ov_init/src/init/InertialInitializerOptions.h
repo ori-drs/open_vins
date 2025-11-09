@@ -30,6 +30,7 @@
 
 #include "cam/CamEqui.h"
 #include "cam/CamRadtan.h"
+#include "cam/CamDS.h"
 #include "feat/FeatureInitializerOptions.h"
 #include "track/TrackBase.h"
 #include "utils/colors.h"
@@ -304,7 +305,10 @@ struct InertialInitializerOptions {
         cam_eigen.block(4, 0, 3, 1) = -T_CtoI.block(0, 0, 3, 3).transpose() * T_CtoI.block(0, 3, 3, 1);
 
         // Create intrinsics model
-        if (dist_model == "equidistant") {
+        if (dist_model == "none") {
+          camera_intrinsics.insert({i, std::make_shared<ov_core::CamDS>(matrix_wh.at(0), matrix_wh.at(1))});
+          camera_intrinsics.at(i)->set_value(cam_calib);
+        } else if (dist_model == "equidistant") {
           camera_intrinsics.insert({i, std::make_shared<ov_core::CamEqui>(matrix_wh.at(0), matrix_wh.at(1))});
           camera_intrinsics.at(i)->set_value(cam_calib);
         } else {
@@ -329,6 +333,7 @@ struct InertialInitializerOptions {
     PRINT_DEBUG("  - calib_camimu_dt: %.4f\n", calib_camimu_dt);
     for (int n = 0; n < num_cameras; n++) {
       std::stringstream ss;
+      ss << "cam_" << n << "_double_sphere:" << (std::dynamic_pointer_cast<ov_core::CamDS>(camera_intrinsics.at(n)) != nullptr) << std::endl;
       ss << "cam_" << n << "_fisheye:" << (std::dynamic_pointer_cast<ov_core::CamEqui>(camera_intrinsics.at(n)) != nullptr) << std::endl;
       ss << "cam_" << n << "_wh:" << std::endl << camera_intrinsics.at(n)->w() << " x " << camera_intrinsics.at(n)->h() << std::endl;
       ss << "cam_" << n << "_intrinsic(0:3):" << std::endl

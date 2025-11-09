@@ -25,8 +25,8 @@
 
 using namespace ov_init;
 
-Factor_ImageReprojCalib::Factor_ImageReprojCalib(const Eigen::Vector2d &uv_meas_, double pix_sigma_, bool is_fisheye_)
-    : uv_meas(uv_meas_), pix_sigma(pix_sigma_), is_fisheye(is_fisheye_) {
+Factor_ImageReprojCalib::Factor_ImageReprojCalib(const Eigen::Vector2d &uv_meas_, double pix_sigma_, bool is_fisheye_, bool is_double_sphere_)
+    : uv_meas(uv_meas_), pix_sigma(pix_sigma_), is_fisheye(is_fisheye_), is_double_sphere(is_double_sphere_) {
 
   // Square root information inverse
   sqrtQ = Eigen::Matrix<double, 2, 2>::Identity();
@@ -72,7 +72,16 @@ bool Factor_ImageReprojCalib::Evaluate(double const *const *parameters, double *
   // Also if jacobians are requested, then compute derivatives
   Eigen::Vector2d uv_dist;
   Eigen::MatrixXd H_dz_dzn, H_dz_dzeta;
-  if (is_fisheye) {
+  if (is_double_sphere) {
+    ov_core::CamDS cam(0, 0);
+    cam.set_value(camera_vals);
+    uv_dist = cam.distort_d(uv_norm);
+    if (jacobians) {
+      cam.compute_distort_jacobian(uv_norm, H_dz_dzn, H_dz_dzeta);
+      H_dz_dzn = sqrtQ_gate * H_dz_dzn;
+      H_dz_dzeta = sqrtQ_gate * H_dz_dzeta;
+    }
+  } else if (is_fisheye) {
     ov_core::CamEqui cam(0, 0);
     cam.set_value(camera_vals);
     uv_dist = cam.distort_d(uv_norm);

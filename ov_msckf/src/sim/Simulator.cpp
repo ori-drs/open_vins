@@ -24,6 +24,7 @@
 #include "cam/CamBase.h"
 #include "cam/CamEqui.h"
 #include "cam/CamRadtan.h"
+#include "cam/CamDS.h"
 #include "sim/BsplineSE3.h"
 #include "state/State.h"
 #include "utils/colors.h"
@@ -49,7 +50,11 @@ Simulator::Simulator(VioManagerOptions &params_) {
   params.camera_intrinsics.clear();
   for (auto const &tmp : params_.camera_intrinsics) {
     auto tmp_cast = std::dynamic_pointer_cast<ov_core::CamEqui>(tmp.second);
-    if (tmp_cast != nullptr) {
+    auto tmp_cast_ds = std::dynamic_pointer_cast<ov_core::CamDS>(tmp.second);
+    if (tmp_cast_ds != nullptr) {
+      params.camera_intrinsics.insert({tmp.first, std::make_shared<ov_core::CamDS>(tmp.second->w(), tmp.second->h())});
+      params.camera_intrinsics.at(tmp.first)->set_value(params_.camera_intrinsics.at(tmp.first)->get_value());
+    } else if (tmp_cast != nullptr) {
       params.camera_intrinsics.insert({tmp.first, std::make_shared<ov_core::CamEqui>(tmp.second->w(), tmp.second->h())});
       params.camera_intrinsics.at(tmp.first)->set_value(params_.camera_intrinsics.at(tmp.first)->get_value());
     } else {

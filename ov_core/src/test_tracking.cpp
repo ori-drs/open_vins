@@ -25,7 +25,7 @@
 #include <unistd.h>
 #include <vector>
 
-#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.hpp>
 #include <ros/ros.h>
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
