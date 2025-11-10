@@ -80,47 +80,47 @@ public:
 
     const double r2 = mx * mx + my * my;
 
+    if (alpha > 0.5) {
+      const double r2_max = 1.0 / (2.0 * alpha - 1.0);
+      if (r2 > r2_max) {
+        return Eigen::Vector2f(NAN, NAN);
+      }
+    }
+
     // Compute intermediate mz following Basalt / Usenko unprojection
     // Note: There are different algebraic forms; this is the stable one used in Basalt.
     const double tmp = 1.0 - (2.0 * alpha - 1.0) * r2;
-    const double sqrt_tmp = (tmp > 0.0) ? std::sqrt(tmp) : 0.0;
+    if (tmp < 0.0) return Eigen::Vector2f(NAN, NAN);
+    const double sqrt_tmp = std::sqrt(tmp);
     const double denom = alpha * sqrt_tmp + (1.0 - alpha);
 
-    // guard denom near zero
-    if (std::abs(denom) < 1e-12) {
-      // fallback: return normalized mx,my (best-effort)
-      Eigen::Vector2f out;
-      out(0) = static_cast<float>(mx);
-      out(1) = static_cast<float>(my);
-      return out;
-    }
-
+    if (denom < 1e-12) return Eigen::Vector2f(NAN, NAN);  // static_cast<float>(mx);
     const double mz = (1.0 - (alpha * alpha) * r2) / denom;
 
     // Further compute closed-form inverse (see Basalt)
     const double mz2 = mz * mz;
     const double sqrt_inner = mz2 + (1.0 - xi * xi) * r2;
-    const double sqrt_inner_clamped = (sqrt_inner > 0.0) ? std::sqrt(sqrt_inner) : 0.0;
+
+    if (sqrt_inner < 0.0) return Eigen::Vector2f(NAN, NAN);
+    const double sqrt_inner_clamped = std::sqrt(sqrt_inner);
 
     const double k_num = mz * xi + sqrt_inner_clamped;
     const double k_den = mz2 + r2;
 
     // protect against division by zero
-    const double k = (std::abs(k_den) > 1e-12) ? (k_num / k_den) : 0.0;
+    if (std::abs(k_den) < 1e-12) return Eigen::Vector2f(NAN, NAN);
+    const double k = (k_num / k_den);
 
     // 3D point (unscaled)
     const double X = k * mx;
     const double Y = k * my;
     const double Z = k * mz - xi;
 
+    if (std::abs(Z) < 1e-12) return Eigen::Vector2f(NAN, NAN);
     Eigen::Vector2f zn;
-    if (std::abs(Z) < 1e-12) {
-      zn(0) = static_cast<float>(mx);
-      zn(1) = static_cast<float>(my);
-    } else {
-      zn(0) = static_cast<float>(X / Z);
-      zn(1) = static_cast<float>(Y / Z);
-    }
+    zn(0) = static_cast<float>(X / Z);
+    zn(1) = static_cast<float>(Y / Z);
+
     return zn;
   }
 
@@ -150,13 +150,7 @@ public:
     const double norm = alpha * d2 + (1.0 - alpha) * k;
 
     // protect against zero norm
-    if (std::abs(norm) < 1e-12) {
-      Eigen::Vector2f uv;
-      uv(0) = static_cast<float>(cx);
-      uv(1) = static_cast<float>(cy);
-      return uv;
-    }
-
+    if (std::abs(norm) < 1e-12) return Eigen::Vector2f(NAN, NAN);
     const double mx = x / norm;
     const double my = y / norm;
 
