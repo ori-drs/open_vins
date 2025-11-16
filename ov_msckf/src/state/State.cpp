@@ -109,7 +109,7 @@ State::State(StateOptions &options) {
     auto pose = std::make_shared<PoseJPL>();
 
     // Allocate intrinsics for this camera
-    auto intrin = std::make_shared<Vec>(8);
+    auto intrin = std::make_shared<Vec>(10);
 
     // Add these to the corresponding maps
     _calib_IMUtoCAM.insert({i, pose});
@@ -161,6 +161,8 @@ State::State(StateOptions &options) {
       _Cov.block(_cam_intrinsics.at(i)->id(), _cam_intrinsics.at(i)->id(), 4, 4) = std::pow(1.0, 2) * Eigen::MatrixXd::Identity(4, 4);
       _Cov.block(_cam_intrinsics.at(i)->id() + 4, _cam_intrinsics.at(i)->id() + 4, 4, 4) =
           std::pow(0.005, 2) * Eigen::MatrixXd::Identity(4, 4);
+      _Cov(_cam_intrinsics.at(i)->id() + 8, _cam_intrinsics.at(i)->id() + 8) = std::pow(0.01, 2);
+      _Cov(_cam_intrinsics.at(i)->id() + 9, _cam_intrinsics.at(i)->id() + 9) = std::pow(0.01, 2);
     }
   }
 }

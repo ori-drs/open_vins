@@ -7,21 +7,6 @@
 
 namespace ov_core {
 
-/**
- * @brief Double-Sphere camera model (header-only)
- *
- * Notes:
- * - This model does NOT use OpenCV-style distortion. We zero camera_d_OPENCV to avoid misuse.
- * - camera_values layout (8 entries for compatibility with CamBase):
- *   [ fx, fy, cx, cy, xi, alpha, 0, 0 ]^T
- *
- * - set_value accepts:
- *    * 6x1 Kalibr ordering: [ xi, alpha, fu, fv, pu, pv ]  (common)
- *    * 8x1 OpenVINS ordering: [ fx, fy, cx, cy, xi, alpha, 0, 0 ]
- *
- * Implementation follows Usenko et al. "Double Sphere" and Basalt's implementation
- * for projection / unprojection / jacobians.
- */
 class CamDS : public CamBase {
 
 public:
@@ -32,13 +17,10 @@ public:
 
   ~CamDS() {}
 
-  /**
-   * Override set_value to accept Kalibr 6-vector or 8-vector and to avoid storing xi/alpha in camera_d_OPENCV.
-   */
   virtual void set_value(const Eigen::MatrixXd &calib) override {
     
-    // Assert we are of size eight
-    assert(calib.rows() == 8);
+    // Assert we are of size ten: fx, fy, cx, cy, k1, k2, k3/p1, k4/p2, xi, alpha
+    assert(calib.rows() == 10);
     camera_values = calib;
 
     // Cache intrinsics in convenient scalars
@@ -46,8 +28,8 @@ public:
     fy = camera_values(1);
     cx = camera_values(2);
     cy = camera_values(3);
-    xi = camera_values(4);
-    alpha = camera_values(5);
+    xi = camera_values(8);
+    alpha = camera_values(9);
 
     std::cout << "\033[32m"
               << "CamDS intrinsics:"
@@ -163,7 +145,7 @@ public:
   /**
    * Compute analytic Jacobians:
    *  - H_dz_dzn : 2x2 Jacobian of pixel z w.r.t normalized coords [x_n, y_n]
-   *  - H_dz_dzeta: 2x8 Jacobian of pixel z w.r.t intrinsics (fx,fy,cx,cy,xi,alpha,0,0)
+   *  - H_dz_dzeta: 2x10 Jacobian of pixel z w.r.t intrinsics (fx,fy,cx,cy,_,_,_,_,xi,alpha)
    *
    * Implementation adapted from Basalt's Double-Sphere derivatives.
    */
@@ -247,10 +229,12 @@ public:
     H_dz_dzn(1, 0) = d_proj_d_p3d(1, 0);
     H_dz_dzn(1, 1) = d_proj_d_p3d(1, 1);
 
-    // H_dz_dzeta: 2x8 to match CamBase expectation. Fill first 6 columns, last two zeros.
-    H_dz_dzeta = Eigen::MatrixXd::Zero(2, 8);
-    H_dz_dzeta.block<2, 6>(0, 0) = d_proj_d_param;
-    // columns 6 and 7 remain zero (no extra radial params)
+    // camera_values = [ fx, fy, cx, cy, k1, k2, p1, p2, xi, alpha ]
+    // d_proj_d_param is [fx, fy, cx, cy, xi, alpha] -> place xi,alpha into cols 8,9
+    H_dz_dzeta = Eigen::MatrixXd::Zero(2, 10);
+    H_dz_dzeta.block<2, 4>(0, 0) = d_proj_d_param.block<2, 4>(0, 0);
+    H_dz_dzeta.col(8) = d_proj_d_param.col(4); // xi
+    H_dz_dzeta.col(9) = d_proj_d_param.col(5); // alpha
   }
 
 private:

@@ -24,6 +24,7 @@
 
 #include <Eigen/Eigen>
 #include <memory>
+#include <iostream>
 
 namespace ov_type {
 
@@ -88,8 +89,15 @@ public:
    * @param new_value New value that will overwrite state's value
    */
   virtual void set_value(const Eigen::MatrixXd &new_value) {
-    assert(_value.rows() == new_value.rows());
-    assert(_value.cols() == new_value.cols());
+    if (_value.rows() != new_value.rows() || _value.cols() != new_value.cols()) {
+      std::cerr << "\033[31m[ERROR]\033[0m set_value: matrix size mismatch!\n"
+                << "Expected size: " << _value.rows() << "x" << _value.cols()
+                << ", Got: " << new_value.rows() << "x" << new_value.cols() << "\n"
+                << "Old value (_value):\n" << _value.transpose() << "\n"
+                << "New value (new_value):\n" << new_value.transpose() << std::endl;
+      assert(false && "Matrix dimension mismatch in set_value");
+    }
+
     _value = new_value;
   }
 

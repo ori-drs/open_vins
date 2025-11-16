@@ -402,32 +402,43 @@ int main(int argc, char **argv) {
               problem.AddResidualBlock(factor_prior, nullptr, factor_params);
             }
           }
-          bool is_fisheye = (std::dynamic_pointer_cast<ov_core::CamEqui>(params.camera_intrinsics.at(cam_id)) != nullptr);
-          bool is_double_sphere = (std::dynamic_pointer_cast<ov_core::CamDS>(params.camera_intrinsics.at(cam_id)) != nullptr);
+          bool is_pinhole_equi = (std::dynamic_pointer_cast<ov_core::CamEqui>(params.camera_intrinsics.at(cam_id)) != nullptr);
+          bool is_ds_none = (std::dynamic_pointer_cast<ov_core::CamDS>(params.camera_intrinsics.at(cam_id)) != nullptr);
+          bool is_omni_radtan = (std::dynamic_pointer_cast<ov_core::CamOmniRadtan>(params.camera_intrinsics.at(cam_id)) != nullptr);
+          std::string camera_model = "pinhole-radtan";
+          if (is_pinhole_equi) {
+            camera_model = "pinhole-equi";
+          } else if (is_ds_none) {
+            camera_model = "ds-none";
+          } else if (is_omni_radtan) {
+            camera_model = "omni-radtan";
+          }
           if (map_calib_cam.find(cam_id) == map_calib_cam.end()) {
-            auto *var_calib_cam = new double[8];
-            for (int i = 0; i < 8; i++) {
+            auto *var_calib_cam = new double[10];
+            for (int i = 0; i < 10; i++) {
               var_calib_cam[i] = params.camera_intrinsics.at(cam_id)->get_value()(i, 0);
             }
-            problem.AddParameterBlock(var_calib_cam, 8);
+            problem.AddParameterBlock(var_calib_cam, 10);
             map_calib_cam.insert({cam_id, (int)ceres_vars_calib_cam_intrinsics.size()});
             ceres_vars_calib_cam_intrinsics.push_back(var_calib_cam);
 
             // Construct state and prior
-            Eigen::MatrixXd x_lin = Eigen::MatrixXd::Zero(8, 1);
-            for (int i = 0; i < 8; i++) {
+            Eigen::MatrixXd x_lin = Eigen::MatrixXd::Zero(10, 1);
+            for (int i = 0; i < 10; i++) {
               x_lin(0 + i) = var_calib_cam[i];
             }
-            Eigen::MatrixXd prior_grad = Eigen::MatrixXd::Zero(8, 1);
-            Eigen::MatrixXd prior_Info = Eigen::MatrixXd::Identity(8, 8);
+            Eigen::MatrixXd prior_grad = Eigen::MatrixXd::Zero(10, 1);
+            Eigen::MatrixXd prior_Info = Eigen::MatrixXd::Identity(10, 10);
             prior_Info.block(0, 0, 4, 4) *= 1.0 / std::pow(1.0, 2);
             prior_Info.block(4, 4, 4, 4) *= 1.0 / std::pow(0.005, 2);
+            prior_Info(8, 8) *= 1.0 / std::pow(0.01, 2);
+            prior_Info(9, 9) *= 1.0 / std::pow(0.01, 2);
 
             // Construct state type and ceres parameter pointers
             std::vector<std::string> x_types;
             std::vector<double *> factor_params;
             factor_params.push_back(var_calib_cam);
-            x_types.emplace_back("vec8");
+            x_types.emplace_back("vec10");
             if (!params.init_dyn_mle_opt_calib) {
               problem.SetParameterBlockConstant(var_calib_cam);
             } else {
@@ -466,7 +477,7 @@ int main(int argc, char **argv) {
             factor_params.push_back(ceres_vars_calib_cam2imu_ori.at(map_calib_cam2imu.at(cam_id)));
             factor_params.push_back(ceres_vars_calib_cam2imu_pos.at(map_calib_cam2imu.at(cam_id)));
             factor_params.push_back(ceres_vars_calib_cam_intrinsics.at(map_calib_cam.at(cam_id)));
-            auto *factor_pinhole = new Factor_ImageReprojCalib(uv_raw, params.sigma_pix, is_fisheye, is_double_sphere);
+            auto *factor_pinhole = new Factor_ImageReprojCalib(uv_raw, params.sigma_pix, camera_model);
             if (map_features_delayed.find(featid) != map_features_delayed.end()) {
               map_features_delayed.at(featid).push_back({factor_pinhole, factor_params});
             } else {

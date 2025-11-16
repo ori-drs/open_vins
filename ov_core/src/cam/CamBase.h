@@ -55,8 +55,8 @@ public:
    */
   virtual void set_value(const Eigen::MatrixXd &calib) {
 
-    // Assert we are of size eight
-    assert(calib.rows() == 8);
+    // Assert we are of size ten: fx, fy, cx, cy, k1, k2, k3/p1, k4/p2, xi, alpha
+    assert(calib.rows() == 10);
     camera_values = calib;
 
     // Camera matrix

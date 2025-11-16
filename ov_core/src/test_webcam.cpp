@@ -134,8 +134,8 @@ int main(int argc, char **argv) {
   // Fake camera info (we don't need this, as we are not using the normalized coordinates for anything)
   std::unordered_map<size_t, std::shared_ptr<CamBase>> cameras;
   for (int i = 0; i < 2; i++) {
-    Eigen::Matrix<double, 8, 1> cam0_calib;
-    cam0_calib << 1, 1, 0, 0, 0, 0, 0, 0;
+    Eigen::Matrix<double, 10, 1> cam0_calib;
+    cam0_calib << 1, 1, 0, 0, 0, 0, 0, 0, 0, 0;
     std::shared_ptr<CamBase> camera_calib = std::make_shared<CamRadtan>(100, 100);
     camera_calib->set_value(cam0_calib);
     cameras.insert({i, camera_calib});

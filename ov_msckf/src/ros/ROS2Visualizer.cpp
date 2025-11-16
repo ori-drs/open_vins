@@ -886,13 +886,15 @@ void ROS2Visualizer::publish_loopclosure_information() {
     pub_loop_extrinsic->publish(odometry_calib);
 
     // PUBLISH CAMERA0 INTRINSICS
-    bool is_fisheye = (std::dynamic_pointer_cast<ov_core::CamEqui>(_app->get_params().camera_intrinsics.at(0)) != nullptr);
-    bool is_double_sphere = (std::dynamic_pointer_cast<ov_core::CamDS>(_app->get_params().camera_intrinsics.at(0)) != nullptr);
+    bool is_pinhole_equi = (std::dynamic_pointer_cast<ov_core::CamEqui>(_app->get_params().camera_intrinsics.at(0)) != nullptr);
+    bool is_ds_none = (std::dynamic_pointer_cast<ov_core::CamDS>(_app->get_params().camera_intrinsics.at(0)) != nullptr);
+    bool is_omni_radtan = (std::dynamic_pointer_cast<ov_core::CamOmniRadtan>(_app->get_params().camera_intrinsics.at(0)) != nullptr);
     sensor_msgs::msg::CameraInfo cameraparams;
     cameraparams.header = header;
     cameraparams.header.frame_id = "cam0";
-    cameraparams.distortion_model = is_double_sphere ? "none" : "equidistant";
-    cameraparams.distortion_model = is_fisheye ? "equidistant" : "plumb_bob";
+    cameraparams.distortion_model = is_ds_none ? "none" : "equidistant";
+    cameraparams.distortion_model = is_omni_radtan ? "radtan" : "equidistant";
+    cameraparams.distortion_model = is_pinhole_equi ? "equidistant" : "plumb_bob";
     Eigen::VectorXd cparams = _app->get_state()->_cam_intrinsics.at(0)->value();
     cameraparams.d = {cparams(4), cparams(5), cparams(6), cparams(7)};
     cameraparams.k = {cparams(0), 0, cparams(2), 0, cparams(1), cparams(3), 0, 0, 1};

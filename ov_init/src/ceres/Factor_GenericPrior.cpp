@@ -48,6 +48,9 @@ Factor_GenericPrior::Factor_GenericPrior(const Eigen::MatrixXd &x_lin_, const st
     } else if (str == "vec8") {
       state_size += 8;
       state_error_size += 8;
+    }  else if (str == "vec10") {
+      state_size += 10;
+      state_error_size += 10;
     } else {
       std::cerr << "type - " << str << " not implemented in prior" << std::endl;
       std::exit(EXIT_FAILURE);
@@ -88,6 +91,8 @@ Factor_GenericPrior::Factor_GenericPrior(const Eigen::MatrixXd &x_lin_, const st
       mutable_parameter_block_sizes()->push_back(3);
     if (str == "vec8")
       mutable_parameter_block_sizes()->push_back(8);
+    if (str == "vec10")
+      mutable_parameter_block_sizes()->push_back(10);
   }
 }
 
@@ -158,6 +163,15 @@ bool Factor_GenericPrior::Evaluate(double const *const *parameters, double *resi
       }
       global_it += 8;
       local_it += 8;
+    } else if (x_type[i] == "vec10") {
+      Eigen::Matrix<double, 10, 1> p_i = Eigen::Map<const Eigen::Matrix<double, 10, 1>>(parameters[i]);
+      res.block(local_it, 0, 10, 1) = p_i - x_lin.block(global_it, 0, 10, 1);
+      if (jacobians && jacobians[i]) {
+        Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> jacobian(jacobians[i], num_residuals(), 10);
+        jacobian.block(0, 0, num_residuals(), 10) = sqrtI.block(0, local_it, num_residuals(), 10);
+      }
+      global_it += 10;
+      local_it += 10;
     } else {
       std::cerr << "type - " << x_type[i] << " not implemented in prior" << std::endl;
       std::exit(EXIT_FAILURE);

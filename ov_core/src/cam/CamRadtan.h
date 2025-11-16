@@ -182,7 +182,7 @@ public:
                 2 * cam_d(7) * uv_norm(0) * uv_norm(1);
 
     // Compute the Jacobian in respect to the intrinsics
-    H_dz_dzeta = Eigen::MatrixXd::Zero(2, 8);
+    H_dz_dzeta = Eigen::MatrixXd::Zero(2, 10);
     H_dz_dzeta(0, 0) = x1;
     H_dz_dzeta(0, 2) = 1;
     H_dz_dzeta(0, 4) = cam_d(0) * uv_norm(0) * r_2;

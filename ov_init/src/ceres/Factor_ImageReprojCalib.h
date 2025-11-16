@@ -32,6 +32,7 @@
 #include "cam/CamEqui.h"
 #include "cam/CamRadtan.h"
 #include "cam/CamDS.h"
+#include "cam/CamOmniRadtan.h"
 #include "utils/quat_ops.h"
 
 namespace ov_init {
@@ -48,11 +49,7 @@ public:
   double pix_sigma = 1.0;
   Eigen::Matrix<double, 2, 2> sqrtQ;
 
-  // If distortion model is fisheye or radtan
-  bool is_fisheye = false;
-
-  // If camera model is double sphere
-  bool is_double_sphere = false;
+  std::string camera_model = "pinhole-radtan";
 
   // If value of 1 then this residual adds to the problem, otherwise if zero it is "gated"
   double gate = 1.0;
@@ -61,9 +58,9 @@ public:
    * @brief Default constructor
    * @param uv_meas_ Raw pixel uv measurement of a environmental feature
    * @param pix_sigma_ Raw pixel measurement uncertainty (typically 1)
-   * @param is_fisheye_ If this raw pixel camera uses fisheye distortion
+   * @param camera_model_ Used camera model: pinhole-radtan, pinhole-equi, ds-none, omni-radtan
    */
-  Factor_ImageReprojCalib(const Eigen::Vector2d &uv_meas_, double pix_sigma_, bool is_fisheye_, bool is_double_sphere_);
+  Factor_ImageReprojCalib(const Eigen::Vector2d &uv_meas_, double pix_sigma_, const std::string &camera_model_);
 
   virtual ~Factor_ImageReprojCalib() {}
 

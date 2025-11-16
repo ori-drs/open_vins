@@ -797,29 +797,31 @@ bool DynamicInitializer::initialize(double &timestamp, Eigen::MatrixXd &covarian
       }
     }
     if (map_calib_cam.find(cam_id) == map_calib_cam.end()) {
-      auto *var_calib_cam = new double[8];
-      for (int j = 0; j < 8; j++) {
+      auto *var_calib_cam = new double[10];
+      for (int j = 0; j < 10; j++) {
         var_calib_cam[j] = params.camera_intrinsics.at(cam_id)->get_value()(j, 0);
       }
-      problem.AddParameterBlock(var_calib_cam, 8);
+      problem.AddParameterBlock(var_calib_cam, 10);
       map_calib_cam.insert({cam_id, (int)ceres_vars_calib_cam_intrinsics.size()});
       ceres_vars_calib_cam_intrinsics.push_back(var_calib_cam);
 
       // Construct state and prior
-      Eigen::MatrixXd x_lin = Eigen::MatrixXd::Zero(8, 1);
-      for (int j = 0; j < 8; j++) {
+      Eigen::MatrixXd x_lin = Eigen::MatrixXd::Zero(10, 1);
+      for (int j = 0; j < 10; j++) {
         x_lin(0 + j) = var_calib_cam[j];
       }
-      Eigen::MatrixXd prior_grad = Eigen::MatrixXd::Zero(8, 1);
-      Eigen::MatrixXd prior_Info = Eigen::MatrixXd::Identity(8, 8);
+      Eigen::MatrixXd prior_grad = Eigen::MatrixXd::Zero(10, 1);
+      Eigen::MatrixXd prior_Info = Eigen::MatrixXd::Identity(10, 10);
       prior_Info.block(0, 0, 4, 4) *= 1.0 / std::pow(1.0, 2);
       prior_Info.block(4, 4, 4, 4) *= 1.0 / std::pow(0.005, 2);
+      prior_Info(8, 8) *= 1.0 / std::pow(0.01, 2);
+      prior_Info(9, 9) *= 1.0 / std::pow(0.01, 2);
 
       // Construct state type and ceres parameter pointers
       std::vector<std::string> x_types;
       std::vector<double *> factor_params;
       factor_params.push_back(var_calib_cam);
-      x_types.emplace_back("vec8");
+      x_types.emplace_back("vec10");
       auto *factor_prior = new Factor_GenericPrior(x_lin, x_types, prior_Info, prior_grad);
       problem.AddResidualBlock(factor_prior, nullptr, factor_params);
       if (!params.init_dyn_mle_opt_calib) {
@@ -843,8 +845,17 @@ bool DynamicInitializer::initialize(double &timestamp, Eigen::MatrixXd &covarian
       // Get our ids and if the camera is a fisheye or not
       size_t feat_id = feat.first;
       size_t cam_id = camtime.first;
-      bool is_fisheye = (std::dynamic_pointer_cast<ov_core::CamEqui>(params.camera_intrinsics.at(cam_id)) != nullptr);
-      bool is_double_sphere = (std::dynamic_pointer_cast<ov_core::CamDS>(params.camera_intrinsics.at(cam_id)) != nullptr);
+      bool is_pinhole_equi = (std::dynamic_pointer_cast<ov_core::CamEqui>(params.camera_intrinsics.at(cam_id)) != nullptr);
+      bool is_ds_none = (std::dynamic_pointer_cast<ov_core::CamDS>(params.camera_intrinsics.at(cam_id)) != nullptr);
+      bool is_omni_radtan = (std::dynamic_pointer_cast<ov_core::CamOmniRadtan>(params.camera_intrinsics.at(cam_id)) != nullptr);
+      std::string camera_model = "pinhole-radtan";
+      if (is_pinhole_equi) {
+        camera_model = "pinhole-equi";
+      } else if (is_ds_none) {
+        camera_model = "ds-none";
+      } else if (is_omni_radtan) {
+        camera_model = "omni-radtan";
+      }
 
       // Loop through each observation
       for (size_t i = 0; i < camtime.second.size(); i++) {
@@ -877,7 +888,7 @@ bool DynamicInitializer::initialize(double &timestamp, Eigen::MatrixXd &covarian
         factor_params.push_back(ceres_vars_calib_cam2imu_ori.at(map_calib_cam2imu.at(cam_id)));
         factor_params.push_back(ceres_vars_calib_cam2imu_pos.at(map_calib_cam2imu.at(cam_id)));
         factor_params.push_back(ceres_vars_calib_cam_intrinsics.at(map_calib_cam.at(cam_id)));
-        auto *factor_pinhole = new Factor_ImageReprojCalib(uv_raw, params.sigma_pix, is_fisheye, is_double_sphere);
+        auto *factor_pinhole = new Factor_ImageReprojCalib(uv_raw, params.sigma_pix, camera_model);
         // ceres::LossFunction *loss_function = nullptr;
         ceres::LossFunction *loss_function = new ceres::CauchyLoss(1.0);
         problem.AddResidualBlock(factor_pinhole, loss_function, factor_params);
@@ -1004,7 +1015,7 @@ bool DynamicInitializer::initialize(double &timestamp, Eigen::MatrixXd &covarian
 
   // Finally, compute the covariance
   ceres::Covariance::Options options_cov;
-  options_cov.null_space_rank = (!params.init_dyn_mle_opt_calib) * ((int)map_calib_cam2imu.size() * (6 + 8));
+  options_cov.null_space_rank = (!params.init_dyn_mle_opt_calib) * ((int)map_calib_cam2imu.size() * (6 + 10));
   options_cov.min_reciprocal_condition_number = params.init_dyn_min_rec_cond;
   // options_cov.algorithm_type = ceres::CovarianceAlgorithmType::DENSE_SVD;
   options_cov.apply_loss_function = true; // Better consistency if we use this
