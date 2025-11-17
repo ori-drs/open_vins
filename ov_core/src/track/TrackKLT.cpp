@@ -175,6 +175,7 @@ void TrackKLT::feed_monocular(const CameraData &message, size_t msg_id) {
   // Update our feature database, with theses new observations
   for (size_t i = 0; i < good_left.size(); i++) {
     cv::Point2f npt_l = camera_calib.at(cam_id)->undistort_cv(good_left.at(i).pt);
+    //--if (std::abs(npt_l.x) > 500.1 || std::abs(npt_l.y) > 500.1) continue;
     database->update_feature(good_ids_left.at(i), message.timestamp, cam_id, good_left.at(i).pt.x, good_left.at(i).pt.y, npt_l.x, npt_l.y);
   }
 
@@ -356,11 +357,13 @@ void TrackKLT::feed_stereo(const CameraData &message, size_t msg_id_left, size_t
   // Update our feature database, with theses new observations
   for (size_t i = 0; i < good_left.size(); i++) {
     cv::Point2f npt_l = camera_calib.at(cam_id_left)->undistort_cv(good_left.at(i).pt);
+    //--if (std::abs(npt_l.x) > 500.1 || std::abs(npt_l.y) > 500.1) continue;
     database->update_feature(good_ids_left.at(i), message.timestamp, cam_id_left, good_left.at(i).pt.x, good_left.at(i).pt.y, npt_l.x,
                              npt_l.y);
   }
   for (size_t i = 0; i < good_right.size(); i++) {
     cv::Point2f npt_r = camera_calib.at(cam_id_right)->undistort_cv(good_right.at(i).pt);
+    //--if (std::abs(npt_r.x) > 500.1 || std::abs(npt_r.y) > 500.1) continue;
     database->update_feature(good_ids_right.at(i), message.timestamp, cam_id_right, good_right.at(i).pt.x, good_right.at(i).pt.y, npt_r.x,
                              npt_r.y);
   }
@@ -861,8 +864,12 @@ void TrackKLT::perform_matching(const std::vector<cv::Mat> &img0pyr, const std::
   // We don't want to do ransac on distorted image uvs since the mapping is nonlinear
   std::vector<cv::Point2f> pts0_n, pts1_n;
   for (size_t i = 0; i < pts0.size(); i++) {
-    pts0_n.push_back(camera_calib.at(id0)->undistort_cv(pts0.at(i)));
-    pts1_n.push_back(camera_calib.at(id1)->undistort_cv(pts1.at(i)));
+    cv::Point2f pt0 = camera_calib.at(id0)->undistort_cv(pts0.at(i));
+    cv::Point2f pt1 = camera_calib.at(id1)->undistort_cv(pts1.at(i));
+    //--if (std::abs(pt0.x) > 500.1 || std::abs(pt0.y) > 500.1) continue;
+    //--if (std::abs(pt1.x) > 500.1 || std::abs(pt1.y) > 500.1) continue;
+    pts0_n.push_back(pt0);
+    pts1_n.push_back(pt1);
   }
 
   // Do RANSAC outlier rejection (note since we normalized the max pixel error is now in the normalized cords)

@@ -49,12 +49,12 @@ public:
   // -----------------------
   static inline Eigen::Vector2f invalid_sentinel() {
     // distinct, out-of-image / impossible value
-    constexpr float kInvalid = -1.0f;
+    constexpr float kInvalid = -10000.0f;
     return Eigen::Vector2f(kInvalid, kInvalid);
   }
 
   static inline bool is_invalid_sentinel(const Eigen::Vector2f &v) {
-    constexpr float kInvalid = -1.0f;
+    constexpr float kInvalid = -10000.0f;
     return v(0) == kInvalid && v(1) == kInvalid;
   }
 

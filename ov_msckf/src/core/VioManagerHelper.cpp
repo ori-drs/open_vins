@@ -250,6 +250,7 @@ void VioManager::retriangulate_active_tracks(const ov_core::CameraData &message)
 
       // Get the UV coordinate normal
       cv::Point2f pt_n = state->_cam_intrinsics_cameras.at(cam_id)->undistort_cv(pt_d);
+      //--if (std::abs(pt_n.x) > 500.1 || std::abs(pt_n.y) > 500.1) continue;
       Eigen::Matrix<double, 3, 1> b_i;
       b_i << pt_n.x, pt_n.y, 1;
       b_i = R_GtoCi.transpose() * b_i;
@@ -350,6 +351,7 @@ void VioManager::retriangulate_active_tracks(const ov_core::CameraData &message)
     Eigen::Vector3d p_FinIi = R_GtoIi * (feat.second - p_IiinG);
     Eigen::Vector3d p_FinCi = R_ItoC * p_FinIi + p_IinC;
     double depth = p_FinCi(2);
+    if (depth < 0.1) continue;
     Eigen::Vector2d uv_dist;
     if (feat_uvs_in_cam0.find(feat.first) != feat_uvs_in_cam0.end()) {
       uv_dist << (double)feat_uvs_in_cam0.at(feat.first).x, (double)feat_uvs_in_cam0.at(feat.first).y;

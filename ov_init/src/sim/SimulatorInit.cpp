@@ -448,8 +448,8 @@ SimulatorInit::project_pointcloud(const Eigen::Matrix3d &R_GtoI, const Eigen::Ve
       continue;
 
     // Project to normalized coordinates
-    Eigen::Vector2f uv_norm;
-    uv_norm << (float)(p_FinC(0) / p_FinC(2)), (float)(p_FinC(1) / p_FinC(2));
+    Eigen::Vector2f uv_norm(static_cast<float>(p_FinC(0) / p_FinC(2)),
+                            static_cast<float>(p_FinC(1) / p_FinC(2)));
 
     // Distort the normalized coordinates
     Eigen::Vector2f uv_dist;
@@ -491,11 +491,12 @@ void SimulatorInit::generate_points(const Eigen::Matrix3d &R_GtoI, const Eigen::
     double v_dist = gen_v(gen_state_init);
 
     // Convert to opencv format
-    cv::Point2f uv_dist((float)u_dist, (float)v_dist);
+    cv::Point2f uv_dist(static_cast<float>(u_dist), static_cast<float>(v_dist));
 
     // Undistort this point to our normalized coordinates
     cv::Point2f uv_norm;
     uv_norm = camera->undistort_cv(uv_dist);
+    //--if (std::abs(uv_norm.x) > 500.1 || std::abs(uv_norm.y) > 500.1) continue;
 
     // Generate a random depth
     std::uniform_real_distribution<double> gen_depth(params.sim_min_feature_gen_distance, params.sim_max_feature_gen_distance);

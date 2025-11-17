@@ -60,6 +60,7 @@ void TrackSIM::feed_measurement_simulation(double timestamp, const std::vector<i
 
       // Append to the database
       cv::Point2f npt_l = camera_calib.at(cam_id)->undistort_cv(kpt.pt);
+      //--if (std::abs(npt_l.x) > 500.1 || std::abs(npt_l.y) > 500.1) continue;
       database->update_feature(id, timestamp, cam_id, kpt.pt.x, kpt.pt.y, npt_l.x, npt_l.y);
     }
 
