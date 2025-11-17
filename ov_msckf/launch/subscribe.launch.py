@@ -37,7 +37,7 @@ launch_args = [
     ),
     DeclareLaunchArgument(
         name="max_cameras",
-        default_value="1",
+        default_value="2",
         description="how many cameras we have 1 = mono, 2 = stereo, >2 = binocular (all mono tracking)",
     ),
     DeclareLaunchArgument(
