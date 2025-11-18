@@ -85,6 +85,9 @@ bool Factor_ImageReprojCalib::Evaluate(double const *const *parameters, double *
   if (camera_model == "ds-none") {
     ov_core::CamDS cam(0,0);
     process_cam(cam);
+  } else if (camera_model == "eucm-none") {
+    ov_core::CamEUCM cam(0,0);
+    process_cam(cam);
   } else if (camera_model == "omni-radtan") {
     ov_core::CamOmniRadtan cam(0,0);
     process_cam(cam);

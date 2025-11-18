@@ -32,6 +32,7 @@
 #include "cam/CamEqui.h"
 #include "cam/CamRadtan.h"
 #include "cam/CamDS.h"
+#include "cam/CamEUCM.h"
 #include "cam/CamOmniRadtan.h"
 #include "utils/quat_ops.h"
 

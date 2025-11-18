@@ -38,6 +38,7 @@
 #include "cam/CamEqui.h"
 #include "cam/CamRadtan.h"
 #include "cam/CamDS.h"
+#include "cam/CamEUCM.h"
 #include "cam/CamOmniRadtan.h"
 #include "feat/FeatureInitializerOptions.h"
 #include "track/TrackBase.h"
@@ -254,6 +255,13 @@ struct VioManagerOptions {
           parser->parse_external("relative_config_imucam", "cam" + std::to_string(i), "intrinsics", cam_calib_kalibr);
           cam_calib << cam_calib_kalibr.at(2), cam_calib_kalibr.at(3), cam_calib_kalibr.at(4), cam_calib_kalibr.at(5),
                        0.0, 0.0, 0.0, 0.0, cam_calib_kalibr.at(0), cam_calib_kalibr.at(1);
+        } else if (cam_model == "eucm") {
+          // Kalibr order: [alpha, beta, fx, fy, cx, cy]
+          // Reorder to: fx, fy, cx, cy, k1, k2, k3, k4, beta, alpha
+          std::vector<double> cam_calib_kalibr = {0, 0, 1, 1, 0, 0};
+          parser->parse_external("relative_config_imucam", "cam" + std::to_string(i), "intrinsics", cam_calib_kalibr);
+          cam_calib << cam_calib_kalibr.at(2), cam_calib_kalibr.at(3), cam_calib_kalibr.at(4), cam_calib_kalibr.at(5),
+                       0.0, 0.0, 0.0, 0.0, cam_calib_kalibr.at(1), cam_calib_kalibr.at(0);
         } else if (cam_model == "omni") {
           // Kalibr order: [xi, fx, fy, cx, cy], [k1, k2, k3, k4]
           // Reorder to: fx, fy, cx, cy, k1, k2, k3, k4, xi
@@ -296,6 +304,9 @@ struct VioManagerOptions {
         // Create intrinsics model
         if (cam_model == "ds" && dist_model == "none") {
           camera_intrinsics.insert({i, std::make_shared<ov_core::CamDS>(matrix_wh.at(0), matrix_wh.at(1))});
+          camera_intrinsics.at(i)->set_value(cam_calib);
+        } if (cam_model == "eucm" && dist_model == "none") {
+          camera_intrinsics.insert({i, std::make_shared<ov_core::CamEUCM>(matrix_wh.at(0), matrix_wh.at(1))});
           camera_intrinsics.at(i)->set_value(cam_calib);
         } else if (cam_model == "omni" && dist_model == "radtan") {
           camera_intrinsics.insert({i, std::make_shared<ov_core::CamOmniRadtan>(matrix_wh.at(0), matrix_wh.at(1))});

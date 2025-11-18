@@ -25,6 +25,7 @@
 #include "cam/CamEqui.h"
 #include "cam/CamRadtan.h"
 #include "cam/CamDS.h"
+#include "cam/CamEUCM.h"
 #include "cam/CamOmniRadtan.h"
 #include "sim/BsplineSE3.h"
 #include "utils/colors.h"
@@ -51,9 +52,13 @@ SimulatorInit::SimulatorInit(InertialInitializerOptions &params_) {
   for (auto const &tmp : params_.camera_intrinsics) {
     auto tmp_cast = std::dynamic_pointer_cast<ov_core::CamEqui>(tmp.second);
     auto tmp_cast_ds = std::dynamic_pointer_cast<ov_core::CamDS>(tmp.second);
+    auto tmp_cast_eucm = std::dynamic_pointer_cast<ov_core::CamEUCM>(tmp.second);
     auto tmp_cast_omni_radtan = std::dynamic_pointer_cast<ov_core::CamOmniRadtan>(tmp.second);
     if (tmp_cast_ds != nullptr) {
       params.camera_intrinsics.insert({tmp.first, std::make_shared<ov_core::CamDS>(tmp.second->w(), tmp.second->h())});
+      params.camera_intrinsics.at(tmp.first)->set_value(params_.camera_intrinsics.at(tmp.first)->get_value());
+    } else if (tmp_cast_eucm != nullptr) {
+      params.camera_intrinsics.insert({tmp.first, std::make_shared<ov_core::CamEUCM>(tmp.second->w(), tmp.second->h())});
       params.camera_intrinsics.at(tmp.first)->set_value(params_.camera_intrinsics.at(tmp.first)->get_value());
     } else if (tmp_cast_omni_radtan != nullptr) {
       params.camera_intrinsics.insert({tmp.first, std::make_shared<ov_core::CamOmniRadtan>(tmp.second->w(), tmp.second->h())});

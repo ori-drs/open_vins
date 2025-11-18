@@ -25,6 +25,7 @@
 #include "cam/CamEqui.h"
 #include "cam/CamRadtan.h"
 #include "cam/CamDS.h"
+#include "cam/CamEUCM.h"
 #include "cam/CamOmniRadtan.h"
 #include "sim/BsplineSE3.h"
 #include "state/State.h"
@@ -52,9 +53,13 @@ Simulator::Simulator(VioManagerOptions &params_) {
   for (auto const &tmp : params_.camera_intrinsics) {
     auto tmp_cast = std::dynamic_pointer_cast<ov_core::CamEqui>(tmp.second);
     auto tmp_cast_ds = std::dynamic_pointer_cast<ov_core::CamDS>(tmp.second);
+    auto tmp_cast_eucm = std::dynamic_pointer_cast<ov_core::CamEUCM>(tmp.second);
     auto tmp_cast_omni_radtan = std::dynamic_pointer_cast<ov_core::CamOmniRadtan>(tmp.second);
     if (tmp_cast_ds != nullptr) {
       params.camera_intrinsics.insert({tmp.first, std::make_shared<ov_core::CamDS>(tmp.second->w(), tmp.second->h())});
+      params.camera_intrinsics.at(tmp.first)->set_value(params_.camera_intrinsics.at(tmp.first)->get_value());
+    } else if (tmp_cast_eucm != nullptr) {
+      params.camera_intrinsics.insert({tmp.first, std::make_shared<ov_core::CamEUCM>(tmp.second->w(), tmp.second->h())});
       params.camera_intrinsics.at(tmp.first)->set_value(params_.camera_intrinsics.at(tmp.first)->get_value());
     } else if (tmp_cast_omni_radtan != nullptr) {
       params.camera_intrinsics.insert({tmp.first, std::make_shared<ov_core::CamOmniRadtan>(tmp.second->w(), tmp.second->h())});
@@ -236,7 +241,7 @@ void Simulator::perturb_parameters(std::mt19937 gen_state, VioManagerOptions &pa
       intrinsics(r) += 0.005 * w(gen_state);
     }
     for (int r = 8; r < 10; r++) {
-      intrinsics(r) += 0.01 * w(gen_state);
+      intrinsics(r) += 0.02 * w(gen_state);
     }
     params_.camera_intrinsics.at(i)->set_value(intrinsics);
 
