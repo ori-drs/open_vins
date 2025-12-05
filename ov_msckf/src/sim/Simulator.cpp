@@ -240,9 +240,8 @@ void Simulator::perturb_parameters(std::mt19937 gen_state, VioManagerOptions &pa
     for (int r = 4; r < 8; r++) {
       intrinsics(r) += 0.005 * w(gen_state);
     }
-    for (int r = 8; r < 10; r++) {
-      intrinsics(r) += 0.02 * w(gen_state);
-    }
+    intrinsics(8) += 0.02 * w(gen_state);
+    intrinsics(9) += 0.02 * w(gen_state);
     params_.camera_intrinsics.at(i)->set_value(intrinsics);
 
     // Our camera extrinsics transform (orientation)

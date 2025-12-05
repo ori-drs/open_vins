@@ -129,6 +129,8 @@ bool StaticInitializer::initialize(double &timestamp, Eigen::MatrixXd &covarianc
   gravity_inG << 0.0, 0.0, params.gravity_mag;
   Eigen::Vector3d bg = w_avg_2to1;
   Eigen::Vector3d ba = a_avg_2to1 - quat_2_Rot(q_GtoI) * gravity_inG;
+  // bg.setZero();
+  // ba.setZero();
 
   // Set our state variables
   timestamp = window_2to1.at(window_2to1.size() - 1).timestamp;
