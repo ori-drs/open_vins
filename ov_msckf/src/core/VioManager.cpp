@@ -666,8 +666,10 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
   if (state->_options.do_calib_camera_intrinsics) {
     for (int i = 0; i < state->_options.num_cameras; i++) {
       std::shared_ptr<Vec> calib = state->_cam_intrinsics.at(i);
-      PRINT_INFO("cam%d intrinsics = %.3f,%.3f,%.3f,%.3f | %.3f,%.3f,%.3f,%.3f\n", (int)i, calib->value()(0), calib->value()(1),
-                 calib->value()(2), calib->value()(3), calib->value()(4), calib->value()(5), calib->value()(6), calib->value()(7));
+      PRINT_INFO("cam%d intrinsics = %.3f,%.3f,%.3f,%.3f | %.3f,%.3f,%.3f,%.3f | %.3f,%.3f\n", (int)i,
+                  calib->value()(0), calib->value()(1), calib->value()(2), calib->value()(3),
+                  calib->value()(4), calib->value()(5), calib->value()(6), calib->value()(7),
+                  calib->value()(8), calib->value()(9));
     }
   }
 

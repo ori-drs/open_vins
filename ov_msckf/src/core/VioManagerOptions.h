@@ -37,9 +37,7 @@
 
 #include "cam/CamEqui.h"
 #include "cam/CamRadtan.h"
-#include "cam/CamDS.h"
 #include "cam/CamEUCM.h"
-#include "cam/CamOmniRadtan.h"
 #include "feat/FeatureInitializerOptions.h"
 #include "track/TrackBase.h"
 #include "utils/colors.h"
@@ -248,30 +246,13 @@ struct VioManagerOptions {
         parser->parse_external("relative_config_imucam", "cam" + std::to_string(i), "distortion_model", dist_model);
         
         Eigen::VectorXd cam_calib = Eigen::VectorXd::Zero(10);
-        if (cam_model == "ds") {
-          // Kalibr order: [xi, alpha, fx, fy, cx, cy]
-          // Reorder to: fx, fy, cx, cy, k1, k2, k3, k4, xi, alpha
+        if (cam_model == "eucm") {
+          // Kalibr order: [alpha, beta, fx, fy, cx, cy]
+          // Reorder to: fx, fy, cx, cy, _, _, _, _, alpha, beta
           std::vector<double> cam_calib_kalibr = {0, 0, 1, 1, 0, 0};
           parser->parse_external("relative_config_imucam", "cam" + std::to_string(i), "intrinsics", cam_calib_kalibr);
           cam_calib << cam_calib_kalibr.at(2), cam_calib_kalibr.at(3), cam_calib_kalibr.at(4), cam_calib_kalibr.at(5),
                        0.0, 0.0, 0.0, 0.0, cam_calib_kalibr.at(0), cam_calib_kalibr.at(1);
-        } else if (cam_model == "eucm") {
-          // Kalibr order: [alpha, beta, fx, fy, cx, cy]
-          // Reorder to: fx, fy, cx, cy, k1, k2, k3, k4, beta, alpha
-          std::vector<double> cam_calib_kalibr = {0, 0, 1, 1, 0, 0};
-          parser->parse_external("relative_config_imucam", "cam" + std::to_string(i), "intrinsics", cam_calib_kalibr);
-          cam_calib << cam_calib_kalibr.at(2), cam_calib_kalibr.at(3), cam_calib_kalibr.at(4), cam_calib_kalibr.at(5),
-                       0.0, 0.0, 0.0, 0.0, cam_calib_kalibr.at(1), cam_calib_kalibr.at(0);
-        } else if (cam_model == "omni") {
-          // Kalibr order: [xi, fx, fy, cx, cy], [k1, k2, k3, k4]
-          // Reorder to: fx, fy, cx, cy, k1, k2, k3, k4, xi
-          std::vector<double> cam_calib_kalibr1 = {0, 1, 1, 0, 0};
-          std::vector<double> cam_calib_kalibr2 = {0, 0, 0, 0};
-          parser->parse_external("relative_config_imucam", "cam" + std::to_string(i), "intrinsics", cam_calib_kalibr1);
-          parser->parse_external("relative_config_imucam", "cam" + std::to_string(i), "distortion_coeffs", cam_calib_kalibr2);
-          cam_calib << cam_calib_kalibr1.at(1), cam_calib_kalibr1.at(2), cam_calib_kalibr1.at(3), cam_calib_kalibr1.at(4),
-                       cam_calib_kalibr2.at(0), cam_calib_kalibr2.at(1), cam_calib_kalibr2.at(2), cam_calib_kalibr2.at(3),
-                       cam_calib_kalibr1.at(0), 0.0;
         } else {
           // Distortion parameters
           std::vector<double> cam_calib1 = {1, 1, 0, 0};
@@ -302,14 +283,8 @@ struct VioManagerOptions {
         cam_eigen.block(4, 0, 3, 1) = -T_CtoI.block(0, 0, 3, 3).transpose() * T_CtoI.block(0, 3, 3, 1);
 
         // Create intrinsics model
-        if (cam_model == "ds" && dist_model == "none") {
-          camera_intrinsics.insert({i, std::make_shared<ov_core::CamDS>(matrix_wh.at(0), matrix_wh.at(1))});
-          camera_intrinsics.at(i)->set_value(cam_calib);
-        } if (cam_model == "eucm" && dist_model == "none") {
+        if (cam_model == "eucm" && dist_model == "none") {
           camera_intrinsics.insert({i, std::make_shared<ov_core::CamEUCM>(matrix_wh.at(0), matrix_wh.at(1))});
-          camera_intrinsics.at(i)->set_value(cam_calib);
-        } else if (cam_model == "omni" && dist_model == "radtan") {
-          camera_intrinsics.insert({i, std::make_shared<ov_core::CamOmniRadtan>(matrix_wh.at(0), matrix_wh.at(1))});
           camera_intrinsics.at(i)->set_value(cam_calib);
         } else if (dist_model == "equidistant") {
           camera_intrinsics.insert({i, std::make_shared<ov_core::CamEqui>(matrix_wh.at(0), matrix_wh.at(1))});
@@ -408,8 +383,7 @@ struct VioManagerOptions {
     PRINT_DEBUG("CAMERA PARAMETERS:\n");
     for (int n = 0; n < state_options.num_cameras; n++) {
       std::stringstream ss;
-      ss << "cam_" << n << "_double_sphere:" << (std::dynamic_pointer_cast<ov_core::CamDS>(camera_intrinsics.at(n)) != nullptr) << std::endl;
-      ss << "cam_" << n << "_omni_radtan:" << (std::dynamic_pointer_cast<ov_core::CamOmniRadtan>(camera_intrinsics.at(n)) != nullptr) << std::endl;
+      ss << "cam_" << n << "_eucm:" << (std::dynamic_pointer_cast<ov_core::CamEUCM>(camera_intrinsics.at(n)) != nullptr) << std::endl;
       ss << "cam_" << n << "_pinhole_equi:" << (std::dynamic_pointer_cast<ov_core::CamEqui>(camera_intrinsics.at(n)) != nullptr) << std::endl;
       ss << "cam_" << n << "_wh:" << std::endl << camera_intrinsics.at(n)->w() << " x " << camera_intrinsics.at(n)->h() << std::endl;
       ss << "cam_" << n << "_intrinsic(0:3):" << std::endl

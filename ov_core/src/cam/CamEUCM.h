@@ -19,7 +19,7 @@ public:
 
   virtual void set_value(const Eigen::MatrixXd &calib) override {
 
-    // Expect a 10-vector: fx, fy, cx, cy, _, _, _, _, beta, alpha
+    // Expect a 10-vector: fx, fy, cx, cy, _, _, _, _, alpha, beta
     assert(calib.rows() == 10);
     camera_values = calib;
 
@@ -29,15 +29,17 @@ public:
     cy = camera_values(3);
 
     // user-specified ordering: beta at index 8, alpha at index 9
-    beta = camera_values(8);
-    alpha = camera_values(9);
+    alpha = camera_values(8);
+    beta = camera_values(9);
 
-    std::cout << "\033[32m"
-              << "CamEUCM intrinsics:"
-              << " fx=" << fx << " fy=" << fy
-              << " cx=" << cx << " cy=" << cy
-              << " alpha=" << alpha << " beta=" << beta
-              << "\033[0m" << std::endl;
+    if (inv_fx == 0.0 && inv_fy == 0.0) {
+      std::cout << "\033[32m"
+                << "CamEUCM intrinsics:"
+                << " fx=" << fx << " fy=" << fy
+                << " cx=" << cx << " cy=" << cy
+                << " alpha=" << alpha << " beta=" << beta
+                << "\033[0m" << std::endl;
+    }
 
     inv_fx = (fx != 0.0) ? 1.0 / fx : 0.0;
     inv_fy = (fy != 0.0) ? 1.0 / fy : 0.0;
@@ -220,8 +222,8 @@ private:
   double fy;
   double cx;
   double cy;
-  double beta;
   double alpha;
+  double beta;
 
   // cached helpers
   double inv_fx;

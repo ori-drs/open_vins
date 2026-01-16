@@ -403,18 +403,12 @@ int main(int argc, char **argv) {
             }
           }
           bool is_pinhole_equi = (std::dynamic_pointer_cast<ov_core::CamEqui>(params.camera_intrinsics.at(cam_id)) != nullptr);
-          bool is_ds_none = (std::dynamic_pointer_cast<ov_core::CamDS>(params.camera_intrinsics.at(cam_id)) != nullptr);
           bool is_eucm_none = (std::dynamic_pointer_cast<ov_core::CamEUCM>(params.camera_intrinsics.at(cam_id)) != nullptr);
-          bool is_omni_radtan = (std::dynamic_pointer_cast<ov_core::CamOmniRadtan>(params.camera_intrinsics.at(cam_id)) != nullptr);
           std::string camera_model = "pinhole-radtan";
           if (is_pinhole_equi) {
             camera_model = "pinhole-equi";
-          } else if (is_ds_none) {
-            camera_model = "ds-none";
           } else if (is_eucm_none) {
             camera_model = "eucm-none";
-          } else if (is_omni_radtan) {
-            camera_model = "omni-radtan";
           }
           if (map_calib_cam.find(cam_id) == map_calib_cam.end()) {
             auto *var_calib_cam = new double[10];
@@ -434,8 +428,8 @@ int main(int argc, char **argv) {
             Eigen::MatrixXd prior_Info = Eigen::MatrixXd::Identity(10, 10);
             prior_Info.block(0, 0, 4, 4) *= 1.0 / std::pow(1.0, 2);
             prior_Info.block(4, 4, 4, 4) *= 1.0 / std::pow(0.005, 2);
-            prior_Info(8, 8) *= 1.0 / std::pow(0.02, 2);
-            prior_Info(9, 9) *= 1.0 / std::pow(0.02, 2);
+            prior_Info(8, 8) *= 1.0 / std::pow(0.001, 2);
+            prior_Info(9, 9) *= 1.0 / std::pow(0.001, 2);
 
             // Construct state type and ceres parameter pointers
             std::vector<std::string> x_types;
