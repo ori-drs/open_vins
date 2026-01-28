@@ -108,6 +108,7 @@ ROS2Visualizer::ROS2Visualizer(std::shared_ptr<rclcpp::Node> node, std::shared_p
     std::string filepath_est = "state_estimate.txt";
     std::string filepath_std = "state_deviation.txt";
     std::string filepath_gt = "state_groundtruth.txt";
+    std::string filepath_odom = "state_estimate_tum.txt";
     if (node->has_parameter("filepath_est")) {
       node->get_parameter<std::string>("filepath_est", filepath_est);
     }
@@ -117,20 +118,30 @@ ROS2Visualizer::ROS2Visualizer(std::shared_ptr<rclcpp::Node> node, std::shared_p
     if (node->has_parameter("filepath_gt")) {
       node->get_parameter<std::string>("filepath_gt", filepath_gt);
     }
+    if (node->has_parameter("filepath_odom")) {
+      node->get_parameter<std::string>("filepath_odom", filepath_odom);
+    }
 
     // If it exists, then delete it
     if (boost::filesystem::exists(filepath_est))
       boost::filesystem::remove(filepath_est);
     if (boost::filesystem::exists(filepath_std))
       boost::filesystem::remove(filepath_std);
+    if (boost::filesystem::exists(filepath_odom))
+      boost::filesystem::remove(filepath_odom);
 
     // Create folder path to this location if not exists
     boost::filesystem::create_directories(boost::filesystem::path(filepath_est.c_str()).parent_path());
     boost::filesystem::create_directories(boost::filesystem::path(filepath_std.c_str()).parent_path());
+    boost::filesystem::path odom_parent = boost::filesystem::path(filepath_odom.c_str()).parent_path();
+    if (!odom_parent.empty()) {
+      boost::filesystem::create_directories(odom_parent);
+    }
 
     // Open the files
     of_state_est.open(filepath_est.c_str());
     of_state_std.open(filepath_std.c_str());
+    of_odom_tum.open(filepath_odom.c_str());
     of_state_est << "# timestamp(s) q p v bg ba cam_imu_dt num_cam cam0_k cam0_d cam0_rot cam0_trans ... imu_model dw da tg wtoI atoI etc"
                  << std::endl;
     of_state_std << "# timestamp(s) q p v bg ba cam_imu_dt num_cam cam0_k cam0_d cam0_rot cam0_trans ... imu_model dw da tg wtoI atoI etc"
@@ -258,6 +269,18 @@ void ROS2Visualizer::visualize() {
   // Save total state
   if (save_total_state) {
     ROSVisualizerHelper::sim_save_total_state_to_file(_app->get_state(), _sim, of_state_est, of_state_std, of_state_gt);
+    if (of_odom_tum.is_open()) {
+      std::shared_ptr<State> state = _app->get_state();
+      double t_ItoC = state->_calib_dt_CAMtoIMU->value()(0);
+      double timestamp_inI = state->_timestamp + t_ItoC;
+      of_odom_tum.setf(std::ios::fixed, std::ios::floatfield);
+      of_odom_tum.precision(9);
+      of_odom_tum << timestamp_inI << " ";
+      of_odom_tum.precision(9);
+      of_odom_tum << state->_imu->pos()(0) << " " << state->_imu->pos()(1) << " " << state->_imu->pos()(2) << " ";
+      of_odom_tum << state->_imu->quat()(0) << " " << state->_imu->quat()(1) << " " << state->_imu->quat()(2) << " "
+                  << state->_imu->quat()(3) << "\n";
+    }
   }
 
   // Print how much time it took to publish / displaying things
