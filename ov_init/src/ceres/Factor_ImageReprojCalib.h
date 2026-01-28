@@ -33,7 +33,6 @@
 #include "cam/CamRadtan.h"
 #include "cam/CamDS.h"
 #include "cam/CamEUCM.h"
-#include "cam/CamOmniRadtan.h"
 #include "utils/quat_ops.h"
 
 namespace ov_init {
@@ -59,7 +58,7 @@ public:
    * @brief Default constructor
    * @param uv_meas_ Raw pixel uv measurement of a environmental feature
    * @param pix_sigma_ Raw pixel measurement uncertainty (typically 1)
-   * @param camera_model_ Used camera model: pinhole-radtan, pinhole-equi, ds-none, omni-radtan
+   * @param camera_model_ Used camera model: pinhole-radtan, pinhole-equi, ds-none
    */
   Factor_ImageReprojCalib(const Eigen::Vector2d &uv_meas_, double pix_sigma_, const std::string &camera_model_);
 

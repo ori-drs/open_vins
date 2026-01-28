@@ -19,7 +19,7 @@ public:
 
   virtual void set_value(const Eigen::MatrixXd &calib) override {
     
-    // Assert we are of size ten: fx, fy, cx, cy, k1, k2, k3/p1, k4/p2, xi, alpha
+    // Assert we are of size ten: fx, fy, cx, cy, k1, k2, k3/p1, k4/p2, alpha, xi
     assert(calib.rows() == 10);
     camera_values = calib;
 
@@ -28,15 +28,17 @@ public:
     fy = camera_values(1);
     cx = camera_values(2);
     cy = camera_values(3);
-    xi = camera_values(8);
-    alpha = camera_values(9);
+    alpha = camera_values(8);
+    xi = camera_values(9);
 
+    if (inv_fx == 0.0 && inv_fy == 0.0) {
     std::cout << "\033[32m"
               << "CamDS intrinsics:"
               << " fx=" << fx << " fy=" << fy
               << " cx=" << cx << " cy=" << cy
-              << " xi=" << xi << " alpha=" << alpha
+              << " alpha=" << alpha << " xi=" << xi 
               << "\033[0m" << std::endl;
+    }
 
     // precompute inverses
     inv_fx = (fx != 0.0) ? 1.0 / fx : 0.0;
@@ -243,8 +245,8 @@ private:
   double fy;
   double cx;
   double cy;
-  double xi;
   double alpha;
+  double xi;
 
   // cached helpers
   double inv_fx;

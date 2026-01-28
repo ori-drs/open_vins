@@ -405,7 +405,6 @@ int main(int argc, char **argv) {
           bool is_pinhole_equi = (std::dynamic_pointer_cast<ov_core::CamEqui>(params.camera_intrinsics.at(cam_id)) != nullptr);
           bool is_ds_none = (std::dynamic_pointer_cast<ov_core::CamDS>(params.camera_intrinsics.at(cam_id)) != nullptr);
           bool is_eucm_none = (std::dynamic_pointer_cast<ov_core::CamEUCM>(params.camera_intrinsics.at(cam_id)) != nullptr);
-          bool is_omni_radtan = (std::dynamic_pointer_cast<ov_core::CamOmniRadtan>(params.camera_intrinsics.at(cam_id)) != nullptr);
           std::string camera_model = "pinhole-radtan";
           if (is_pinhole_equi) {
             camera_model = "pinhole-equi";
@@ -413,8 +412,6 @@ int main(int argc, char **argv) {
             camera_model = "ds-none";
           } else if (is_eucm_none) {
             camera_model = "eucm-none";
-          } else if (is_omni_radtan) {
-            camera_model = "omni-radtan";
           }
           if (map_calib_cam.find(cam_id) == map_calib_cam.end()) {
             auto *var_calib_cam = new double[10];
