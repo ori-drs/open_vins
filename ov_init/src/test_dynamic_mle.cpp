@@ -431,8 +431,8 @@ int main(int argc, char **argv) {
             Eigen::MatrixXd prior_Info = Eigen::MatrixXd::Identity(10, 10);
             prior_Info.block(0, 0, 4, 4) *= 1.0 / std::pow(1.0, 2);
             prior_Info.block(4, 4, 4, 4) *= 1.0 / std::pow(0.005, 2);
-            prior_Info(8, 8) *= 1.0 / std::pow(0.02, 2);
-            prior_Info(9, 9) *= 1.0 / std::pow(0.02, 2);
+            prior_Info(8, 8) *= 1.0 / std::pow(0.001, 2);
+            prior_Info(9, 9) *= 1.0 / std::pow(0.001, 2);
 
             // Construct state type and ceres parameter pointers
             std::vector<std::string> x_types;
