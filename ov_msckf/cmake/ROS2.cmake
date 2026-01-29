@@ -11,6 +11,8 @@ find_package(sensor_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
+find_package(rosbag2_cpp REQUIRED)
+find_package(rosbag2_storage REQUIRED)
 find_package(ov_core REQUIRED)
 find_package(ov_init REQUIRED)
 
@@ -45,6 +47,8 @@ list(APPEND ament_libraries
         nav_msgs
         cv_bridge
         image_transport
+        rosbag2_cpp
+        rosbag2_storage
         ov_core
         ov_init
 )
@@ -97,6 +101,11 @@ add_executable(run_simulation src/run_simulation.cpp)
 ament_target_dependencies(run_simulation ${ament_libraries})
 target_link_libraries(run_simulation ov_msckf_lib ${thirdparty_libraries})
 install(TARGETS run_simulation DESTINATION lib/${PROJECT_NAME})
+
+add_executable(ros2_serial_msckf src/ros2_serial_msckf.cpp)
+ament_target_dependencies(ros2_serial_msckf ${ament_libraries})
+target_link_libraries(ros2_serial_msckf ov_msckf_lib ${thirdparty_libraries})
+install(TARGETS ros2_serial_msckf DESTINATION lib/${PROJECT_NAME})
 
 add_executable(test_sim_meas src/test_sim_meas.cpp)
 ament_target_dependencies(test_sim_meas ${ament_libraries})
