@@ -47,18 +47,8 @@ launch_args = [
         description="duration (sec) to run, <0 means to the end of the bag",
     ),
     DeclareLaunchArgument(
-        name="dataset",
-        default_value="dataset-room1_512_16",
-        description="dataset name",
-    ),
-    DeclareLaunchArgument(
         name="bag",
-        default_value=[
-            TextSubstitution(text="/home/patrick/datasets/"),
-            LaunchConfiguration("config"),
-            TextSubstitution(text="/"),
-            LaunchConfiguration("dataset"),
-        ],
+        default_value="",
         description="path to rosbag2 directory",
     ),
     DeclareLaunchArgument(
@@ -67,14 +57,29 @@ launch_args = [
         description="path to gt csv file (optional)",
     ),
     DeclareLaunchArgument(
-        name="record_timing_information",
+        name="save_total_state",
         default_value="false",
-        description="record timing info",
+        description="record the total state with calibration and features to a txt file",
     ),
     DeclareLaunchArgument(
-        name="record_timing_filepath",
-        default_value="/tmp/traj_timing.txt",
-        description="timing output file",
+        name="filepath_est",
+        default_value="/tmp/ov_estimate.txt",
+        description="output path for full state estimate",
+    ),
+    DeclareLaunchArgument(
+        name="filepath_std",
+        default_value="/tmp/ov_estimate_std.txt",
+        description="output path for state standard deviation",
+    ),
+    DeclareLaunchArgument(
+        name="filepath_gt",
+        default_value="/tmp/ov_groundtruth.txt",
+        description="output path for groundtruth state",
+    ),
+    DeclareLaunchArgument(
+        name="filepath_odom",
+        default_value="/tmp/ov_odometry.txt",
+        description="output path for odom in TUM format",
     ),
 ]
 
@@ -125,8 +130,11 @@ def launch_setup(context):
             {"bag_start": LaunchConfiguration("bag_start")},
             {"bag_durr": LaunchConfiguration("bag_durr")},
             {"path_gt": LaunchConfiguration("path_gt")},
-            {"record_timing_information": LaunchConfiguration("record_timing_information")},
-            {"record_timing_filepath": LaunchConfiguration("record_timing_filepath")},
+            {"save_total_state": LaunchConfiguration("save_total_state")},
+            {"filepath_est": LaunchConfiguration("filepath_est")},
+            {"filepath_std": LaunchConfiguration("filepath_std")},
+            {"filepath_gt": LaunchConfiguration("filepath_gt")},
+            {"filepath_odom": LaunchConfiguration("filepath_odom")},
         ],
     )
 
