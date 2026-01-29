@@ -33,7 +33,7 @@ launch_args = [
     ),
     DeclareLaunchArgument(
         name="use_stereo",
-        default_value="true",
+        default_value="false",
         description="if we have more than 1 camera, if we should try to track stereo constraints between pairs",
     ),
     DeclareLaunchArgument(

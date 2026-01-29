@@ -26,16 +26,23 @@
 #include <rosbag2_cpp/converter_options.hpp>
 #include <rosbag2_cpp/readers/sequential_reader.hpp>
 #include <rosbag2_storage/storage_options.hpp>
+#include <sensor_msgs/image_encodings.hpp>
+#include <sensor_msgs/msg/compressed_image.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <map>
 #include <memory>
 #include <set>
 #include <string>
+#include <unordered_map>
 #include <vector>
+
+#include <cv_bridge/cv_bridge.hpp>
+#include <opencv2/imgcodecs.hpp>
 
 #include "core/VioManager.h"
 #include "core/VioManagerOptions.h"
@@ -52,6 +59,56 @@ struct BagMsg {
   rclcpp::Time time;
   std::shared_ptr<rcutils_uint8_array_t> serialized_data;
 };
+
+static std::string encoding_from_mat(const cv::Mat &image) {
+  const int type = image.type();
+  if (type == CV_8UC1)
+    return sensor_msgs::image_encodings::MONO8;
+  if (type == CV_16UC1)
+    return sensor_msgs::image_encodings::MONO16;
+  if (type == CV_8UC3)
+    return sensor_msgs::image_encodings::BGR8;
+  if (type == CV_8UC4)
+    return sensor_msgs::image_encodings::BGRA8;
+  if (type == CV_16UC3)
+    return sensor_msgs::image_encodings::BGR16;
+  if (type == CV_16UC4)
+    return sensor_msgs::image_encodings::BGRA16;
+  return sensor_msgs::image_encodings::BGR8;
+}
+
+static sensor_msgs::msg::Image::SharedPtr decode_compressed_image(const sensor_msgs::msg::CompressedImage &msg) {
+  if (msg.data.empty())
+    return nullptr;
+  auto *data_ptr = const_cast<unsigned char *>(msg.data.data());
+  cv::Mat raw(1, static_cast<int>(msg.data.size()), CV_8UC1, data_ptr);
+  cv::Mat decoded = cv::imdecode(raw, cv::IMREAD_UNCHANGED);
+  if (decoded.empty())
+    return nullptr;
+  const std::string encoding = encoding_from_mat(decoded);
+  return cv_bridge::CvImage(msg.header, encoding, decoded).toImageMsg();
+}
+
+static sensor_msgs::msg::Image::SharedPtr decode_image_message(
+    const BagMsg &bag_msg,
+    const std::string &type,
+    rclcpp::Serialization<sensor_msgs::msg::Image> &image_serializer,
+    rclcpp::Serialization<sensor_msgs::msg::CompressedImage> &compressed_serializer) {
+  if (type.empty())
+    return nullptr;
+  if (type.find("CompressedImage") != std::string::npos) {
+    auto compressed = std::make_shared<sensor_msgs::msg::CompressedImage>();
+    rclcpp::SerializedMessage serialized_msg(*bag_msg.serialized_data);
+    compressed_serializer.deserialize_message(&serialized_msg, compressed.get());
+    return decode_compressed_image(*compressed);
+  }
+  if (type.find("sensor_msgs/msg/Image") == std::string::npos)
+    return nullptr;
+  auto image = std::make_shared<sensor_msgs::msg::Image>();
+  rclcpp::SerializedMessage serialized_msg(*bag_msg.serialized_data);
+  image_serializer.deserialize_message(&serialized_msg, image.get());
+  return image;
+}
 
 // Main function
 int main(int argc, char **argv) {
@@ -162,6 +219,11 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
 
+  std::unordered_map<std::string, std::string> topic_to_type;
+  for (const auto &topic_info : reader.get_all_topics_and_types()) {
+    topic_to_type[topic_info.name] = topic_info.type;
+  }
+
   bool have_any = false;
   rclcpp::Time time_begin_all(0, 0, RCL_SYSTEM_TIME);
   rclcpp::Time time_end_all(0, 0, RCL_SYSTEM_TIME);
@@ -170,7 +232,14 @@ int main(int argc, char **argv) {
 
   while (reader.has_next()) {
     auto bag_msg = reader.read_next();
-    rclcpp::Time msg_time(bag_msg->send_timestamp, RCL_SYSTEM_TIME);
+    rcutils_time_point_value_t stamp_ns = bag_msg->send_timestamp;
+    if (stamp_ns == std::numeric_limits<rcutils_time_point_value_t>::max() || stamp_ns <= 0) {
+      stamp_ns = bag_msg->recv_timestamp;
+    }
+    if (stamp_ns == std::numeric_limits<rcutils_time_point_value_t>::max() || stamp_ns < 0) {
+      stamp_ns = 0;
+    }
+    rclcpp::Time msg_time(stamp_ns, RCL_SYSTEM_TIME);
 
     if (!have_any) {
       time_begin_all = msg_time;
@@ -217,6 +286,7 @@ int main(int argc, char **argv) {
 
   rclcpp::Serialization<sensor_msgs::msg::Imu> imu_serializer;
   rclcpp::Serialization<sensor_msgs::msg::Image> image_serializer;
+  rclcpp::Serialization<sensor_msgs::msg::CompressedImage> compressed_serializer;
 
   // Loop through our message array, and lets process them
   std::set<int> used_index;
@@ -237,6 +307,12 @@ int main(int argc, char **argv) {
 
     // IMU processing
     if (msgs.at(m).topic == topic_imu) {
+      const auto type_it = topic_to_type.find(msgs.at(m).topic);
+      if (type_it == topic_to_type.end() || type_it->second.find("sensor_msgs/msg/Imu") == std::string::npos) {
+        PRINT_ERROR(RED "[SERIAL]: IMU topic has unsupported type: %s\n" RESET,
+                    (type_it == topic_to_type.end()) ? "<unknown>" : type_it->second.c_str());
+        continue;
+      }
       auto msg = std::make_shared<sensor_msgs::msg::Imu>();
       rclcpp::SerializedMessage serialized_msg(*msgs.at(m).serialized_data);
       imu_serializer.deserialize_message(&serialized_msg, msg.get());
@@ -290,17 +366,29 @@ int main(int argc, char **argv) {
 
       // Pass our data into our visualizer callbacks!
       if (params.state_options.num_cameras == 1) {
-        auto msg0 = std::make_shared<sensor_msgs::msg::Image>();
-        rclcpp::SerializedMessage serialized_msg(*msgs.at(camid_to_msg_index.at(0)).serialized_data);
-        image_serializer.deserialize_message(&serialized_msg, msg0.get());
+        const auto &bag_msg0 = msgs.at(camid_to_msg_index.at(0));
+        const auto type_it0 = topic_to_type.find(bag_msg0.topic);
+        const std::string type0 = (type_it0 == topic_to_type.end()) ? "" : type_it0->second;
+        auto msg0 = decode_image_message(bag_msg0, type0, image_serializer, compressed_serializer);
+        if (!msg0) {
+          PRINT_ERROR(RED "[SERIAL]: Unable to decode image for %s (type: %s) at %.3f\n" RESET, bag_msg0.topic.c_str(),
+                      type0.empty() ? "<unknown>" : type0.c_str(), bag_msg0.time.seconds());
+          break;
+        }
         viz->callback_monocular(msg0, 0);
       } else if (params.state_options.num_cameras == 2) {
-        auto msg0 = std::make_shared<sensor_msgs::msg::Image>();
-        auto msg1 = std::make_shared<sensor_msgs::msg::Image>();
-        rclcpp::SerializedMessage serialized_msg0(*msgs.at(camid_to_msg_index.at(0)).serialized_data);
-        rclcpp::SerializedMessage serialized_msg1(*msgs.at(camid_to_msg_index.at(1)).serialized_data);
-        image_serializer.deserialize_message(&serialized_msg0, msg0.get());
-        image_serializer.deserialize_message(&serialized_msg1, msg1.get());
+        const auto &bag_msg0 = msgs.at(camid_to_msg_index.at(0));
+        const auto &bag_msg1 = msgs.at(camid_to_msg_index.at(1));
+        const auto type_it0 = topic_to_type.find(bag_msg0.topic);
+        const auto type_it1 = topic_to_type.find(bag_msg1.topic);
+        const std::string type0 = (type_it0 == topic_to_type.end()) ? "" : type_it0->second;
+        const std::string type1 = (type_it1 == topic_to_type.end()) ? "" : type_it1->second;
+        auto msg0 = decode_image_message(bag_msg0, type0, image_serializer, compressed_serializer);
+        auto msg1 = decode_image_message(bag_msg1, type1, image_serializer, compressed_serializer);
+        if (!msg0 || !msg1) {
+          PRINT_ERROR(RED "[SERIAL]: Unable to decode stereo images at %.3f\n" RESET, bag_msg0.time.seconds());
+          break;
+        }
         used_index.insert(camid_to_msg_index.at(0)); // skip this message
         used_index.insert(camid_to_msg_index.at(1)); // skip this message
         viz->callback_stereo(msg0, msg1, 0, 1);
