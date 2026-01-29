@@ -16,7 +16,7 @@ cam0:
   distortion_model: equidistant
   intrinsics: [461.6398879418857, 459.7153043295965, 732.9460954720965, 720.5410566713475]
   resolution: [1472, 1440]
-  rostopic: /cam0/image_raw/compressed
+  rostopic: /cam0/image_raw
   timeshift_cam_imu: -0.006584760035932231
 
 cam1:
@@ -31,7 +31,7 @@ cam1:
   distortion_model: equidistant
   intrinsics: [481.0462499931464, 478.0014012062969, 735.0624904634898, 720.0949685881241]
   resolution: [1472, 1440]
-  rostopic: /cam1/image_raw/compressed
+  rostopic: /cam1/image_raw
   timeshift_cam_imu: -0.006546655556020702
 
 

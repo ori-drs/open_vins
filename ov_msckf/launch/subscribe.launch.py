@@ -1,13 +1,23 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, LogInfo, OpaqueFunction
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, LogInfo, OpaqueFunction
 from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration, TextSubstitution
+from launch.substitutions import LaunchConfiguration, PythonExpression, TextSubstitution
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory, get_package_prefix
 import os
 import sys
 
 launch_args = [
+    DeclareLaunchArgument(
+        name="bag",
+        default_value="",
+        description="path to ros2 bag to play (if empty, do not play)",
+    ),
+    DeclareLaunchArgument(
+        name="bag_rate",
+        default_value="1.0",
+        description="ros2 bag play rate (1.0 = realtime speed)",
+    ),
     DeclareLaunchArgument(name="namespace", default_value="ov_msckf", description="namespace"),
     DeclareLaunchArgument(
         name="ov_enable", default_value="true", description="enable OpenVINS node"
@@ -44,6 +54,26 @@ launch_args = [
         name="save_total_state",
         default_value="false",
         description="record the total state with calibration and features to a txt file",
+    ),
+    DeclareLaunchArgument(
+        name="filepath_est",
+        default_value="/tmp/ov_estimate.txt",
+        description="output path for full state estimate",
+    ),
+    DeclareLaunchArgument(
+        name="filepath_std",
+        default_value="/tmp/ov_estimate_std.txt",
+        description="output path for state standard deviation",
+    ),
+    DeclareLaunchArgument(
+        name="filepath_gt",
+        default_value="/tmp/ov_groundtruth.txt",
+        description="output path for groundtruth state",
+    ),
+    DeclareLaunchArgument(
+        name="filepath_odom",
+        default_value="/tmp/ov_odometry.txt",
+        description="output path for odom in TUM format",
     )
 ]
 
@@ -84,8 +114,12 @@ def launch_setup(context):
             {"verbosity": LaunchConfiguration("verbosity")},
             {"use_stereo": LaunchConfiguration("use_stereo")},
             {"max_cameras": LaunchConfiguration("max_cameras")},
-            {"save_total_state": LaunchConfiguration("save_total_state")},
             {"config_path": config_path},
+            {"save_total_state": LaunchConfiguration("save_total_state")},
+            {"filepath_est": LaunchConfiguration("filepath_est")},
+            {"filepath_std": LaunchConfiguration("filepath_std")},
+            {"filepath_gt": LaunchConfiguration("filepath_gt")},
+            {"filepath_odom": LaunchConfiguration("filepath_odom")},
         ],
     )
 
@@ -104,7 +138,21 @@ def launch_setup(context):
             ],
     )
 
-    return [node1, node2]
+    bag_play = ExecuteProcess(
+        condition=IfCondition(PythonExpression(["'", LaunchConfiguration("bag"), "' != ''"])),
+        cmd=[
+            "ros2",
+            "bag",
+            "play",
+            LaunchConfiguration("bag"),
+            "--clock",
+            "--rate",
+            LaunchConfiguration("bag_rate"),
+        ],
+        output="screen",
+    )
+
+    return [node1, node2, bag_play]
 
 
 def generate_launch_description():
