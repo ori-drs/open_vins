@@ -150,10 +150,10 @@ def launch_setup(context):
         output="screen",
         condition=IfCondition(LaunchConfiguration("image_conversion")),
         arguments=[
-            "/cam0/image_raw/compressed",
-            "/cam1/image_raw/compressed",
-            "/cam0/image_raw",
-            "/cam1/image_raw",
+            "/insta/cam0/image_raw/compressed",
+            "/insta/cam1/image_raw/compressed",
+            "/insta/cam0/image_raw",
+            "/insta/cam1/image_raw",
         ],
     )
 

@@ -11,7 +11,7 @@ imu0:
   gyroscope_noise_density: 0.00037476147
   gyroscope_random_walk: 0.0003438086
   model: calibrated
-  rostopic: /imu/data_raw
+  rostopic: /insta/imu/data_raw
   time_offset: 0.0
   update_rate: 1000
   # how to get from Kalibr imu.yaml result file:
