@@ -6,23 +6,23 @@ BASE_OUT_DIR="/media/yuhao/bluessd/hilti/BuchsIT/ov_output"
 
 # Floors before floor_5: floor_1 .. floor_4 from your list
 runs=(
-#   "floor_1_2025-05-05_run_1"   # good
-#   "floor_1_2025-07-07_run_1"   # init fail
-#   "floor_1_2025-12-02_run_1"   # good
+  "floor_1_2025-05-05_run_1"   # good
+  "floor_1_2025-07-07_run_1"   # good, require zero init bias
+  "floor_1_2025-12-02_run_1"   # good
 
-#   "floor_2_2025-05-05_run_1"   # good
-#   "floor_2_2025-10-28_run_1"   # init fail
-#   "floor_2_2025-10-28_run_2"   # good
-#   "floor_2_2025-12-02_run_1"   # good
-#   "floor_2_2025-12-03_run_1"   # good
+  "floor_2_2025-05-05_run_1"   # good
+  "floor_2_2025-10-28_run_1"   # good, require zero init bias
+  "floor_2_2025-10-28_run_2"   # good
+  "floor_2_2025-12-02_run_1"   # good
+  "floor_2_2025-12-03_run_1"   # good
 
-#   "floor_3_2025-05-19_run_1"   # good, can easily fail
-#   "floor_3_2025-12-02_run_1"   # good
+  "floor_3_2025-05-19_run_1"   # good, can easily fail
+  "floor_3_2025-12-02_run_1"   # good
 
-#   "floor_4_2025-05-19_run_1"   # init fail
-#   "floor_4_2025-12-02_run_1"   # good, require tuning for init
+  "floor_4_2025-05-19_run_1"   # good, require zero init bias
+  "floor_4_2025-12-02_run_1"   # good, require zero init bias
 
-#   "floor_5_2025-12-02_run_1"   # good, can easily fail
+  "floor_5_2025-12-02_run_1"   # good, can easily fail
 )
 
 mkdir -p "$BASE_OUT_DIR"
