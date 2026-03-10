@@ -35,6 +35,8 @@ using namespace ov_core;
 using namespace ov_type;
 using namespace ov_init;
 
+#define FORCE_ZERO_BIAS_INIT false
+
 InertialInitializer::InertialInitializer(InertialInitializerOptions &params_, std::shared_ptr<ov_core::FeatureDatabase> db)
     : params(params_), _db(db) {
 
@@ -115,7 +117,7 @@ bool InertialInitializer::initialize(double &timestamp, Eigen::MatrixXd &covaria
     int feat_thresh = 15;
     if (num_features0 < feat_thresh || num_features1 < feat_thresh) {
       PRINT_WARNING(YELLOW "[init]: not enough feats to compute disp: %d,%d < %d\n" RESET, num_features0, num_features1, feat_thresh);
-      return false;
+      if (FORCE_ZERO_BIAS_INIT){ }else{ return false;}
     }
 
     // Check if it passed our check!
@@ -129,7 +131,10 @@ bool InertialInitializer::initialize(double &timestamp, Eigen::MatrixXd &covaria
   // CASE2: if both disparities are below the threshold, then the platform has been stationary during both periods
   bool has_jerk = (!disparity_detected_moving_1to0 && disparity_detected_moving_2to1);
   bool is_still = (!disparity_detected_moving_1to0 && !disparity_detected_moving_2to1);
-  if (((has_jerk && wait_for_jerk) || (is_still && !wait_for_jerk)) && params.init_imu_thresh > 0.0) {
+  //std::cerr << "MF II 1\n";
+
+  //if (((has_jerk && wait_for_jerk) || (is_still && !wait_for_jerk)) && params.init_imu_thresh > 0.0) {
+  if (FORCE_ZERO_BIAS_INIT || ((has_jerk && wait_for_jerk) || (is_still && !wait_for_jerk)) && params.init_imu_thresh > 0.0) { // MF HACK
     PRINT_DEBUG(GREEN "[init]: USING STATIC INITIALIZER METHOD!\n" RESET);
     return init_static->initialize(timestamp, covariance, order, t_imu, wait_for_jerk);
   } else if (params.init_dyn_use && !is_still) {

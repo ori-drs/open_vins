@@ -294,9 +294,9 @@ struct VioManagerOptions {
           masks.insert({i, mask});
           if (mask.cols != camera_intrinsics.at(i)->w() || mask.rows != camera_intrinsics.at(i)->h()) {
             PRINT_ERROR(RED "VioManager(): mask size does not match camera!\n" RESET);
-            PRINT_ERROR(RED "\t- mask%d - %s\n" RESET, i, total_mask_path.c_str());
-            PRINT_ERROR(RED "\t- mask%d - %d x %d\n" RESET, mask.cols, mask.rows);
-            PRINT_ERROR(RED "\t- cam%d - %d x %d\n" RESET, camera_intrinsics.at(i)->w(), camera_intrinsics.at(i)->h());
+            PRINT_ERROR(RED "\t- mask %d - %s\n" RESET, i, total_mask_path.c_str());
+            PRINT_ERROR(RED "\t- mask %d - %d x %d\n" RESET, mask.cols, mask.rows);
+            PRINT_ERROR(RED "\t- cam %d - %d x %d\n" RESET, camera_intrinsics.at(i)->w(), camera_intrinsics.at(i)->h());
             std::exit(EXIT_FAILURE);
           }
         }

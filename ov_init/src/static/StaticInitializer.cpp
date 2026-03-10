@@ -34,12 +34,19 @@ using namespace ov_core;
 using namespace ov_type;
 using namespace ov_init;
 
+#define FORCE_ZERO_BIAS_INIT false
+
+
 bool StaticInitializer::initialize(double &timestamp, Eigen::MatrixXd &covariance, std::vector<std::shared_ptr<Type>> &order,
                                    std::shared_ptr<IMU> t_imu, bool wait_for_jerk) {
-
+  if (FORCE_ZERO_BIAS_INIT){
+    PRINT_INFO(YELLOW "[init-s]: FORCE_ZERO_BIAS_INIT hack enabled\n" RESET);
+  }else{
+    PRINT_INFO(YELLOW "[init-s]: FORCE_ZERO_BIAS_INIT hack disabled\n" RESET);
+  }
   // Return if we don't have any measurements
   if (imu_data->size() < 2) {
-    return false;
+    if (FORCE_ZERO_BIAS_INIT){ }else{ return false;}
   }
 
   // Newest and oldest imu timestamp
@@ -49,7 +56,8 @@ bool StaticInitializer::initialize(double &timestamp, Eigen::MatrixXd &covarianc
   // Return if we don't have enough for two windows
   if (newesttime - oldesttime < params.init_window_time) {
     PRINT_INFO(YELLOW "[init-s]: unable to select window of IMU readings, not enough readings\n" RESET);
-    return false;
+    std::cerr << "MF SI 1\n";
+    if (FORCE_ZERO_BIAS_INIT){ }else{ return false;}
   }
 
   // First lets collect a window of IMU readings from the newest measurement to the oldest
@@ -66,7 +74,8 @@ bool StaticInitializer::initialize(double &timestamp, Eigen::MatrixXd &covarianc
   // Return if both of these failed
   if (window_1to0.size() < 2 || window_2to1.size() < 2) {
     PRINT_INFO(YELLOW "[init-s]: unable to select window of IMU readings, not enough readings\n" RESET);
-    return false;
+    std::cerr << "MF SI 2\n";
+    if (FORCE_ZERO_BIAS_INIT){ }else{ return false;}
   }
 
   // Calculate the sample variance for the newest window from 1 to 0
@@ -100,14 +109,17 @@ bool StaticInitializer::initialize(double &timestamp, Eigen::MatrixXd &covarianc
   // If it is below the threshold and we want to wait till we detect a jerk
   if (a_var_1to0 < params.init_imu_thresh && wait_for_jerk) {
     PRINT_INFO(YELLOW "[init-s]: no IMU excitation, below threshold %.3f < %.3f\n" RESET, a_var_1to0, params.init_imu_thresh);
-    return false;
+    std::cerr << "MF SI 3\n";
+    if (FORCE_ZERO_BIAS_INIT){ }else{ return false;}
   }
 
   // We should also check that the old state was below the threshold!
   // This is the case when we have started up moving, and thus we need to wait for a period of stationary motion
   if (a_var_2to1 > params.init_imu_thresh && wait_for_jerk) {
     PRINT_INFO(YELLOW "[init-s]: to much IMU excitation, above threshold %.3f > %.3f\n" RESET, a_var_2to1, params.init_imu_thresh);
-    return false;
+    std::cerr << "MF SI 4 - to much hack\n";
+    // MF: disabling this but not the others helps sometimgs
+    if (FORCE_ZERO_BIAS_INIT){ }else{ return false;}
   }
 
   // If it is above the threshold and we are not waiting for a jerk
@@ -115,8 +127,11 @@ bool StaticInitializer::initialize(double &timestamp, Eigen::MatrixXd &covarianc
   if ((a_var_1to0 > params.init_imu_thresh || a_var_2to1 > params.init_imu_thresh) && !wait_for_jerk) {
     PRINT_INFO(YELLOW "[init-s]: to much IMU excitation, above threshold %.3f,%.3f > %.3f\n" RESET, a_var_2to1, a_var_1to0,
                params.init_imu_thresh);
-    return false;
+    std::cerr << "MF SI 5\n";
+    if (FORCE_ZERO_BIAS_INIT){ }else{ return false;}
   }
+
+  std::cerr << "MF SI 5.1\n";
 
   // Get rotation with z axis aligned with -g (z_in_G=0,0,1)
   Eigen::Vector3d z_axis = a_avg_2to1 / a_avg_2to1.norm();
@@ -124,21 +139,34 @@ bool StaticInitializer::initialize(double &timestamp, Eigen::MatrixXd &covarianc
   InitializerHelper::gram_schmidt(z_axis, Ro);
   Eigen::Vector4d q_GtoI = rot_2_quat(Ro);
 
+  std::cerr << "MF SI 5.2\n";
+
   // Set our biases equal to our noise (subtract our gravity from accelerometer bias)
   Eigen::Vector3d gravity_inG;
   gravity_inG << 0.0, 0.0, params.gravity_mag;
   Eigen::Vector3d bg = w_avg_2to1;
   Eigen::Vector3d ba = a_avg_2to1 - quat_2_Rot(q_GtoI) * gravity_inG;
+  if (FORCE_ZERO_BIAS_INIT){
+    bg = Eigen::Vector3d(0.0, 0.0, 0.0);
+    ba = Eigen::Vector3d(0.0, 0.0, 0.0);
+  }
+  std::cerr << "MF SI 5.3\n";
 
   // Set our state variables
   timestamp = window_2to1.at(window_2to1.size() - 1).timestamp;
   Eigen::VectorXd imu_state = Eigen::VectorXd::Zero(16);
+  std::cerr << "MF SI 5.3.1\n";
   imu_state.block(0, 0, 4, 1) = q_GtoI;
   imu_state.block(10, 0, 3, 1) = bg;
   imu_state.block(13, 0, 3, 1) = ba;
+  std::cerr << "MF SI 5.3.2\n";
   assert(t_imu != nullptr);
+  std::cerr << "MF SI 5.3.3\n";
   t_imu->set_value(imu_state);
+  std::cerr << "MF SI 5.3.4\n";
   t_imu->set_fej(imu_state);
+
+  std::cerr << "MF SI 5.4\n";
 
   // Create base covariance and its covariance ordering
   order.clear();
@@ -161,5 +189,6 @@ bool StaticInitializer::initialize(double &timestamp, Eigen::MatrixXd &covarianc
   // covariance.block(3, 3, 3, 3) = std::pow(1e-3, 2) * Eigen::Matrix3d::Identity();
 
   // Return :D
+  std::cerr << "MF SI 6\n";
   return true;
 }
