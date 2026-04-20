@@ -25,6 +25,7 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
+#include <geometry_msgs/msg/vector3.hpp>
 #include <image_transport/image_transport.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/sync_policies/approximate_time.h>
@@ -54,9 +55,10 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem.hpp>
 #include <cv_bridge/cv_bridge.h>
-// #include <ov_msckf/msg/ov_runtime_status.hpp>
-#include <ov_msckf/msg/ov_runtime_status.hpp> 
-// #include <ov_msckf/msg/ov_runtime_status.hpp>
+#include <ov_msckf/msg/ov_runtime_status.hpp>
+#include <ov_msckf/msg/ov_active_feature.hpp> 
+#include <ov_msckf/msg/ov_active_feature_array.hpp> 
+
 namespace ov_core {
 class YamlParser;
 struct CameraData;
@@ -156,6 +158,8 @@ protected:
   rclcpp::Publisher<sensor_msgs::msg::PointCloud>::SharedPtr pub_loop_point;
   rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr pub_loop_intrinsics;
   rclcpp::Publisher<ov_msckf::msg::OVRuntimeStatus>::SharedPtr pub_status;
+  rclcpp::Publisher<ov_msckf::msg::OVActiveFeatureArray>::SharedPtr pub_active_features;
+  rclcpp::Publisher<ov_msckf::msg::OVActiveFeatureArray>::SharedPtr pub_slam_features;
   std::shared_ptr<tf2_ros::TransformBroadcaster> mTfBr;
 
   // Our subscribers and camera synchronizers

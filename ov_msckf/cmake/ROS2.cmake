@@ -25,11 +25,13 @@ add_definitions(-DROS_AVAILABLE=2)
 # Add message files
 set(msg_files
         msg/ros2/OVRuntimeStatus.msg
+        msg/ros2/OVActiveFeature.msg
+        msg/ros2/OVActiveFeatureArray.msg
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
         ${msg_files}
-        DEPENDENCIES std_msgs geometry_msgs
+        DEPENDENCIES std_msgs geometry_msgs sensor_msgs
 )
 ament_export_dependencies(rosidl_default_runtime)
 
@@ -130,6 +132,13 @@ ament_target_dependencies(test_sim_repeat ${ament_libraries})
 target_link_libraries(test_sim_repeat ov_msckf_lib ${thirdparty_libraries})
 target_link_libraries(test_sim_repeat ${cpp_typesupport_target})
 install(TARGETS test_sim_repeat DESTINATION lib/${PROJECT_NAME})
+
+add_executable(listen_runtime src/listen_runtime.cpp)
+ament_target_dependencies(listen_runtime ${ament_libraries})
+target_link_libraries(listen_runtime ov_msckf_lib ${thirdparty_libraries})
+target_link_libraries(listen_runtime ${cpp_typesupport_target})
+install(TARGETS listen_runtime DESTINATION lib/${PROJECT_NAME})
+
 
 # Install launch and config directories
 install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch/)
