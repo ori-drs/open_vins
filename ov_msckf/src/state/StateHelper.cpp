@@ -620,7 +620,7 @@ void StateHelper::marginalize_old_clone(std::shared_ptr<State> state, bool slow_
     double marginal_time = state->margtimestep(slow_motion);
     // Lock the mutex to avoid deleting any elements from _clones_IMU while accessing it from other threads
     std::lock_guard<std::mutex> lock(state->_mutex_state);
-    assert(marginal_time != INFINITY);
+    assert(marginal_time != INFINITY && marginal_time != -INFINITY);
     StateHelper::marginalize(state, state->_clones_IMU.at(marginal_time));
     // Note that the marginalizer should have already deleted the clone
     // Thus we just need to remove the pointer to it from our state

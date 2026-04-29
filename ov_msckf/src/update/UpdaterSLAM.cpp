@@ -420,9 +420,9 @@ void UpdaterSLAM::update(std::shared_ptr<State> state, std::vector<std::shared_p
       H_xf.conservativeResize(H_x.rows(), H_x.cols() + 1);
       H_xf.block(0, H_x.cols(), H_x.rows(), 1) = H_f.block(0, H_f.cols() - 1, H_f.rows(), 1);
       H_f.conservativeResize(H_f.rows(), H_f.cols() - 1);
-      if (slow_motion) {
-        H_f.setZero();
-      }
+      // if (slow_motion) {
+        // H_f.setZero();
+      // }
 
       // Nullspace project the bearing portion
       // This takes into account that we have marginalized the bearing already
@@ -434,9 +434,9 @@ void UpdaterSLAM::update(std::shared_ptr<State> state, std::vector<std::shared_p
       // Else we have the full feature in our state, so just append it
       H_xf.conservativeResize(H_x.rows(), H_x.cols() + H_f.cols());
       H_xf.block(0, H_x.cols(), H_x.rows(), H_f.cols()) = H_f;
-      if (slow_motion) {
-        H_f.setZero();
-      }
+      // if (slow_motion) {
+        // H_f.setZero();
+      // }
     }
 
     // Append to our Jacobian order vector

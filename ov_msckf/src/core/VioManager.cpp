@@ -587,9 +587,9 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
 
   // Cleanup any features older than the marginalization time
   if ((int)state->_clones_IMU.size() > state->_options.max_clone_size) {
-    trackFEATS->get_feature_database()->cleanup_measurements(state->margtimestep(slow_motion));
+    trackFEATS->get_feature_database()->cleanup_measurements_exact(state->margtimestep(slow_motion));
     if (trackARUCO != nullptr) {
-      trackARUCO->get_feature_database()->cleanup_measurements(state->margtimestep(slow_motion));
+      trackARUCO->get_feature_database()->cleanup_measurements_exact(state->margtimestep(slow_motion));
     }
   }
 
