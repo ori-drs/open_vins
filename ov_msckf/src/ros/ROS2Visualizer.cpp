@@ -60,7 +60,7 @@ ROS2Visualizer::ROS2Visualizer(std::shared_ptr<rclcpp::Node> node, std::shared_p
   pub_points_msckf = node->create_publisher<sensor_msgs::msg::PointCloud2>("points_msckf", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_points_msckf->get_topic_name());
   pub_points_slam = node->create_publisher<sensor_msgs::msg::PointCloud2>("points_slam", 2);
-  PRINT_DEBUG("Publishing: %s\n", pub_points_msckf->get_topic_name());
+  PRINT_DEBUG("Publishing: %s\n", pub_points_slam->get_topic_name());
   pub_points_aruco = node->create_publisher<sensor_msgs::msg::PointCloud2>("points_aruco", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_points_aruco->get_topic_name());
   pub_points_sim = node->create_publisher<sensor_msgs::msg::PointCloud2>("points_sim", 2);
