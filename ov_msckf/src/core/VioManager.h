@@ -95,7 +95,7 @@ public:
    */
   void initialize_with_gt(Eigen::Matrix<double, 17, 1> imustate);
 
-  /// If we are initialized or not
+  /// If we are initialized and have performed at least one update (feature or zero-velocity) since initialization
   bool initialized() { return is_initialized_vio && timelastupdate != -1; }
 
   /// Timestamp that the system was initialized at
